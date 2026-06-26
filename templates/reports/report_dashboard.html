@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Reports - Ericus POS{% endblock %}
+{% block page_title %}Reports &amp; Analytics{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block extra_head %}
+<script src="/static/js/chart.min.js"></script>
+<style>
+  /* Metric Card Layout Topology */
+  .analytics-summary-deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .metric-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text3);
+    font-weight: bold;
+  }
+
+  .metric-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--text);
+    font-family: 'Times New Roman', serif;
+    line-height: 1.2;
+  }
+
+  .metric-timeline {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Times New Roman', serif;
+  }
+
+  /* Data Visualization Panels */
+  .chart-split-matrix {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 992px) {
+    .chart-split-matrix {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Structural Sub-Report Navigation Grid */
+  .report-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .hub-navigation-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .hub-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hub-menu-item:last-child {
+    border-bottom: none;
+  }
+
+  .hub-menu-item:hover {
+    background: rgba(74, 108, 247, 0.04);
+  }
+
+  .hub-item-title {
+    font-weight: bold;
+    font-size: 13.5px;
+    font-family: 'Times New Roman', serif;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .hub-item-desc {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .hub-action-arrow {
+    color: #4a6cf7;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+  }
+
+  .hub-menu-item:hover .hub-action-arrow {
+    transform: translateX(4px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Reports &amp; Deep-Data Analytics</h1>
+  <span class="text-muted text-sm" style="font-weight: bold; letter-spacing: 0.3px;">
+    Ledger Synchronization Horizon: {{ today|date:"d F Y" }}
+  </span>
+</div>
+
+<!-- Month-to-Date Performance Matrices -->
+<div class="analytics-summary-deck">
+  <div class="metric-card">
+    <span class="metric-label">MTD Operational Revenue</span>
+    <span class="metric-value">GHS {{ pl.revenue|default:"0.00" }}</span>
+    <span class="metric-timeline">{{ month_start|date:"d M" }} &ndash; {{ today|date:"d M" }}</span>
+  </div>
+  
+  <div class="metric-card">
+    <span class="metric-label">MTD Gross Yield Margin</span>
+    <span class="metric-value">GHS {{ pl.gross_profit|default:"0.00" }}</span>
+    <span class="metric-timeline">Structural Margin: <strong style="color: #4a6cf7;">{{ pl.gross_margin_pct|default:"0" }}%</strong></span>
+  </div>
+  
+  <div class="metric-card">
+    <span class="metric-label">MTD Net Cleared Yield</span>
+    <span class="metric-value" style="color: {% if pl.net_profit and pl.net_profit > 0 %}#28a745{% else %}#dc3545{% endif %};">
+      GHS {{ pl.net_profit|default:"0.00" }}
+    </span>
+    <span class="metric-timeline">Amortized after operating expenses</span>
+  </div>
+  
+  <div class="metric-card">
+    <span class="metric-label">Critical Asset Runout Risks</span>
+    <span class="metric-value" style="color: {% if inv.low_stock_count > 0 %}#dc3545{% else %}#28a745{% endif %};">
+      {{ inv.low_stock_count|default:"0" }}
+    </span>
+    <span class="metric-timeline">
+      <a href="{% url 'product_list' %}?low_stock_only=1" style="color: #4a6cf7; font-weight: bold; text-decoration: none;">
+        Initialize Replenishment Audit &rarr;
+      </a>
+    </span>
+  </div>
+</div>
+
+<!-- Asynchronous Canvas Chart Interfaces -->
+<div class="chart-split-matrix">
+  <div class="card">
+    <div class="card-head"><h3>Net Performance Trend Timeline (6-Month Horizon)</h3></div>
+    <div class="card-body" style="padding: 16px;">
+      <canvas id="profitChart" height="190"></canvas>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-head"><h3>Settlement Matrix Distribution &mdash; Active Term</h3></div>
+    <div class="card-body" style="padding: 16px;">
+      <canvas id="paymentChart" height="190"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- System Sub-Registry Domain Interfaces -->
+<div class="report-hub-grid">
+
+  <!-- Operational Sales Domain -->
+  <div class="card">
+    <div class="card-head"><h3>Sales Vector Repositories</h3></div>
+    <div class="card-body hub-navigation-menu">
+      <a href="{% url 'reports:sales_summary' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Sales Aggregations Ledger</div>
+          <div class="hub-item-desc">Gross clearing logs, operational frequency, and daily yields.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:sales_by_product' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Itemized Sales Distribution</div>
+          <div class="hub-item-desc">Velocity velocity analysis, units shifted, and item-level margins.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:sales_by_attendant' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Operator Performance Audits</div>
+          <div class="hub-item-desc">Throughput evaluation metrics categorized by active staff profiles.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Financial Integrity Domain -->
+  <div class="card">
+    <div class="card-head"><h3>Financial Clearing &amp; Obligations</h3></div>
+    <div class="card-body hub-navigation-menu">
+      <a href="{% url 'reports:profit_loss' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Profit &amp; Loss Statement</div>
+          <div class="hub-item-desc">Comprehensive matrix balancing COGS, expenditures, and net yield.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:expense_summary' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Operational Expenditure Logs</div>
+          <div class="hub-item-desc">Disbursement tracking across operational organizational vectors.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:customer_credit' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Deferred Debt Recovery Ledger</div>
+          <div class="hub-item-desc">Outstanding client balance lines and corporate risk boundary rules.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Asset and Logistics Warehousing -->
+  <div class="card">
+    <div class="card-head"><h3>Inventory Management &amp; Procurement</h3></div>
+    <div class="card-body hub-navigation-menu">
+      <a href="{% url 'product_list' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Real-Time Warehousing Evaluation</div>
+          <div class="hub-item-desc">Instant asset tracking, runout valuations, and capital weights.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:purchase_summary' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Procurement &amp; Supply Operations</div>
+          <div class="hub-item-desc">Active vendor lines, procurement pipelines, and delivery clearings.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+      <a href="{% url 'reports:returns_summary' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Reverse Logistics &amp; Invalidation</div>
+          <div class="hub-item-desc">Return analytics tracking defective asset allocations by reason code.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Operational Staff Optimization -->
+  <div class="card">
+    <div class="card-head"><h3>Human Capital Analytics</h3></div>
+    <div class="card-body hub-navigation-menu">
+      <a href="{% url 'reports:attendant_performance' %}" class="hub-menu-item">
+        <div>
+          <div class="hub-item-title">Workforce Efficiency Matrices</div>
+          <div class="hub-item-desc">Hourly transaction density and tickets finalized per shift index.</div>
+        </div>
+        <span class="hub-action-arrow">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  // Safe extraction of backend JSON strings
+  const profitData = {{ profit_chart_json|safe }};
+  const paymentData = {{ payment_chart_json|safe }};
+
+  // Safe extraction of CSS layout theme variables
+  const getThemeColor = (variableName, fallback) => {
+    return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
+  };
+
+  const textSecondary = getThemeColor('--text2', '#555566');
+  const borderElement = getThemeColor('--border', '#e4e7eb');
+
+  // Chart Global Typography Directives
+  const typographyConfiguration = {
+    font: { family: "'Times New Roman', Times, serif", size: 12 },
+    color: textSecondary
+  };
+
+  // 1. Chronological Line/Bar Plot Execution
+  if (document.getElementById('profitChart') && profitData.labels) {
+    new Chart(document.getElementById('profitChart'), {
+      type: 'bar',
+      data: {
+        labels: profitData.labels,
+        datasets: [{
+          label: 'Net Clear Profit',
+          data: profitData.values,
+          backgroundColor: profitData.values.map(val => val >= 0 ? 'rgba(40, 167, 69, 0.75)' : 'rgba(220, 53, 69, 0.75)'),
+          borderColor: profitData.values.map(val => val >= 0 ? '#28a745' : '#dc3545'),
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { 
+            ticks: { font: typographyConfiguration.font, color: typographyConfiguration.color },
+            grid: { color: borderElement }
+          },
+          y: { 
+            ticks: { 
+              font: typographyConfiguration.font, 
+              color: typographyConfiguration.color,
+              callback: value => 'GHS ' + value.toLocaleString()
+            },
+            grid: { color: borderElement }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Proportional Clearing Channel Execution
+  if (document.getElementById('paymentChart') && paymentData.labels) {
+    new Chart(document.getElementById('paymentChart'), {
+      type: 'doughnut',
+      data: {
+        labels: paymentData.labels,
+        datasets: [{
+          data: paymentData.values,
+          backgroundColor: ['#4a6cf7', '#28a745', '#dc3545', '#ffc107'],
+          borderColor: getThemeColor('--card-bg', '#ffffff'),
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { 
+            position: 'bottom', 
+            labels: { font: typographyConfiguration.font, color: typographyConfiguration.color, padding: 14 } 
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

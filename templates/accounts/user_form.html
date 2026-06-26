@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Ericus POS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Localized Form View Layout */
+  .form-view-wrapper {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 4px 0;
+  }
+  
+  /* Input Elements Modernization Grid Hooks */
+  .form-view-wrapper input,
+  .form-view-wrapper select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: var(--radius, 6px);
+    background: var(--page-bg, #ffffff);
+    color: var(--text, #1e293b);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .form-view-wrapper input:focus,
+  .form-view-wrapper select:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+  }
+
+  /* Structural Card Header Formatting */
+  .card-header-split {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-header-split h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  /* Form Spacers & Error Flags */
+  .form-group-spaced {
+    margin-bottom: 18px;
+  }
+  .form-group-spaced:last-of-type {
+    margin-bottom: 24px;
+  }
+  .form-label-styled {
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    color: #475569;
+  }
+  .field-error-message {
+    color: #ef4444;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-top: 5px;
+    display: block;
+  }
+  .non-field-error-box {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: #991b1b;
+    font-weight: 500;
+  }
+  
+  .form-action-row {
+    display: flex;
+    gap: 12px;
+  }
+  .form-action-row button,
+  .form-action-row a {
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-view-wrapper">
+  <div class="card">
+    
+    <div class="card-header-split">
+      <h3>{{ title }}</h3>
+      <a href="{% url 'user_list' %}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+        &larr; Back to Users
+      </a>
+    </div>
+
+    <div class="card-body" style="padding: 24px 20px;">
+      <form method="post" id="userAccountForm" novalidate autocomplete="off">
+        {% csrf_token %}
+
+        <!-- Non-Field Validation Block Context -->
+        {% if form.non_field_errors %}
+        <div class="non-field-error-box">
+          {{ form.non_field_errors|join:", " }}
+        </div>
+        {% endif %}
+
+        <!-- Identity Metrics -->
+        <div class="form-group-spaced">
+          <label class="form-label-styled">Full Name *</label>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}
+            <span class="field-error-message">{{ form.full_name.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group-spaced">
+          <label class="form-label-styled">Username *</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <span class="field-error-message">{{ form.username.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group-spaced">
+          <label class="form-label-styled">Phone Contact Number</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}
+            <span class="field-error-message">{{ form.phone.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Conditional Access Matrix Role Selection -->
+        {% if form.role %}
+        <div class="form-group-spaced">
+          <label class="form-label-styled">System Permission Role *</label>
+          {{ form.role }}
+          {% if form.role.errors %}
+            <span class="field-error-message">{{ form.role.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Security Authorization Credentials Box -->
+        <div class="form-group-spaced">
+          <label class="form-label-styled">Account Password *</label>
+          {{ form.password }}
+          {% if form.password.errors %}
+            <span class="field-error-message">{{ form.password.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group-spaced">
+          <label class="form-label-styled">Confirm Account Password *</label>
+          {{ form.confirm_password }}
+          {% if form.confirm_password.errors %}
+            <span class="field-error-message">{{ form.confirm_password.errors|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <!-- System Execution Actions -->
+        <div class="form-action-row">
+          <button type="submit" class="btn btn-primary" id="saveAccountBtn" style="flex: 1;">
+            {% if target %}Commit Changes{% else %}Save User Profile{% endif %}
+          </button>
+          <a href="{% url 'user_list' %}" class="btn btn-outline" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Block redundant double-execution calls on submission cycle
+  document.getElementById('userAccountForm').addEventListener('submit', function() {
+    const actionButton = document.getElementById('saveAccountBtn');
+    actionButton.disabled = true;
+    actionButton.textContent = 'Writing Account Profile...';
+  });
+</script>
+{% endblock %}

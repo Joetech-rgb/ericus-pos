@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Demo Units - Ericus POS{% endblock %}
+{% block page_title %}Demo / Floor Display Units{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:stock_dashboard' %}" class="btn btn-outline btn-sm">&#8592; Inventory</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Info Banner -->
+<div style="background:#d1ecf1;border:1px solid #17a2b8;border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;font-size:13px;color:#0c5460;">
+  <strong>Demo Unit Protection:</strong> Floor display units cannot be sold at the POS. Only the owner can convert them back to sellable stock.
+</div>
+
+<!-- Stats -->
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Active Demo Units</div>
+    <div class="s-value" style="color:#4a6cf7;">{{ demo_units|length }}</div>
+    <div class="s-sub">On floor display</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Products Affected</div>
+    <div class="s-value">{{ demo_units|length }}</div>
+    <div class="s-sub">Unique products</div>
+  </div>
+</div>
+
+<!-- Demo Units Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Active Floor / Demo Units</h3>
+    <span class="text-muted text-sm">Owner-only — cannot be sold at POS</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Serial Number</th>
+          <th>Condition Notes</th>
+          <th>Converted By</th>
+          <th>Converted On</th>
+          <th>Days on Floor</th>
+          {% if request.user.is_owner %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for demo in demo_units %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td>
+            <div style="font-weight:bold;">{{ demo.product.name }}</div>
+            <div style="font-size:11px;color:var(--text3);">{{ demo.product.category.name }}</div>
+          </td>
+          <td>
+            {% if demo.serial_number %}
+            <strong>{{ demo.serial_number }}</strong>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-sm text-muted">{{ demo.condition_notes|default:"—"|truncatewords:10 }}</td>
+          <td class="text-sm">{{ demo.converted_by.get_full_name|default:demo.converted_by.username|default:"—" }}</td>
+          <td class="text-sm">{{ demo.converted_at|date:"d M Y" }}</td>
+          <td>
+            {% now "Y-m-d" as today %}
+            <span style="font-weight:bold;">
+              {{ demo.converted_at|timesince|truncatewords:2 }}
+            </span>
+          </td>
+          {% if request.user.is_owner %}
+          <td>
+            <form method="post" action="{% url 'inventory:return_demo' demo.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="note" value="Returned from floor display to sellable stock">
+              <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Return {{ demo.product.name }} demo unit to sellable stock?')">
+                → Return to Stock
+              </button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if request.user.is_owner %}8{% else %}7{% endif %}" class="text-center text-muted" style="padding:40px;">
+            <div style="font-size:32px;margin-bottom:8px;">🖥️</div>
+            <div>No demo units on floor display.</div>
+            <div style="font-size:12px;margin-top:6px;">Convert units from the product detail page or stock detail page.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- How to add demo units -->
+{% if request.user.is_owner %}
+<div class="card mt-3">
+  <div class="card-head"><h3>How to Add a Demo Unit</h3></div>
+  <div class="card-body">
+    <ol style="font-size:13px;color:var(--text2);line-height:1.8;padding-left:18px;font-family:'Times New Roman',serif;">
+      <li>Go to <a href="{% url 'inventory:stock_dashboard' %}" style="color:#4a6cf7;">Inventory</a> and find the product.</li>
+      <li>Click <strong>History</strong> to open the stock detail page.</li>
+      <li>Find the unit by serial number and click <strong>→ Demo</strong>.</li>
+      <li>The unit is removed from sellable stock and appears here.</li>
+      <li>To sell it, click <strong>→ Return to Stock</strong> above, then sell normally at the POS.</li>
+    </ol>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

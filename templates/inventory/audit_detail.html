@@ -1,0 +1,39 @@
+﻿{% extends "base.html" %}
+{% block title %}Audit Entry #{{ log.pk }}{% endblock %}
+{% block page_title %}Audit Entry Detail{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'audit:log_list' %}" class="btn btn-outline btn-sm">&larr; Back to Logs</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;">
+  <div class="card">
+    <div class="card-head">
+      <h3>{{ log.action }}</h3>
+      {% if log.level == 'critical' %}<span class="badge badge-danger">Critical</span>
+      {% elif log.level == 'warning' %}<span class="badge badge-warning">Warning</span>
+      {% else %}<span class="badge badge-info">Info</span>{% endif %}
+    </div>
+    <div class="card-body">
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody>
+          <tr><td style="width:140px;padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">Timestamp</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">Category</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.get_category_display }}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">User</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.username|default:"System" }}{% if log.user_role %} <span class="text-muted">({{ log.user_role }})</span>{% endif %}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">IP Address</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.ip_address|default:"&mdash;" }}</td></tr>
+          {% if log.object_type %}
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">Object Type</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.object_type }}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">Object ID</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.object_id|default:"&mdash;" }}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-muted text-sm text-bold">Object</td><td style="padding:10px 0;border-bottom:1px solid var(--border);" class="text-sm">{{ log.object_repr|default:"&mdash;" }}</td></tr>
+          {% endif %}
+          {% if log.description %}
+          <tr><td style="padding:10px 0;" class="text-muted text-sm text-bold">Details</td><td style="padding:10px 0;"><pre style="font-family:'Times New Roman',Times,serif;font-size:13px;background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;white-space:pre-wrap;color:var(--text);">{{ log.description }}</pre></td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

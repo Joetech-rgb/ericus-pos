@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Sale History - Ericus POS{% endblock %}
+{% block page_title %}Sale History{% endblock %}
+{% block nav_pos %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'sales:pos' %}" class="btn btn-primary btn-sm">New Sale</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Today Summary -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Today Sales</div>
+    <div class="s-value">{{ today_summary.total_sales|default:"0" }}</div>
+    <div class="s-sub">Transactions</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Today Revenue</div>
+    <div class="s-value">GHS {{ today_summary.total_revenue|default:"0.00" }}</div>
+    <div class="s-sub">All payments</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Cash</div>
+    <div class="s-value">GHS {{ today_summary.cash_sales|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">MoMo</div>
+    <div class="s-value">GHS {{ today_summary.momo_sales|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Credit</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ today_summary.credit_sales|default:"0.00" }}</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Receipt no., customer, attendant..." style="max-width:260px;">
+      <select name="payment_method" class="form-control" style="max-width:180px;">
+        <option value="">All Methods</option>
+        <option value="cash" {% if selected_method == "cash" %}selected{% endif %}>Cash</option>
+        <option value="momo" {% if selected_method == "momo" %}selected{% endif %}>Mobile Money</option>
+        <option value="split" {% if selected_method == "split" %}selected{% endif %}>Split</option>
+        <option value="credit" {% if selected_method == "credit" %}selected{% endif %}>Credit</option>
+      </select>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="max-width:155px;">
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="max-width:155px;">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'sales:sale_list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Sales Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Sales</h3>
+    <span class="text-muted text-sm">{{ page_obj.paginator.count }} sale(s) found</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Receipt No.</th>
+          <th>Date & Time</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Method</th>
+          <th>Change</th>
+          <th>Attendant</th>
+          <th>Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sale in page_obj %}
+        <tr>
+          <td>
+            <a href="{% url 'sales:sale_detail' sale.pk %}" style="color:#4a6cf7;text-decoration:none;font-weight:bold;">
+              {{ sale.receipt_number }}
+            </a>
+          </td>
+          <td class="text-sm">
+            {{ sale.created_at|date:"d M Y" }}<br>
+            <span class="text-muted">{{ sale.created_at|date:"H:i" }}</span>
+          </td>
+          <td class="text-sm">{{ sale.customer_name|default:"Walk-in" }}</td>
+          <td class="text-sm text-muted">{{ sale.item_count }}</td>
+          <td><strong>GHS {{ sale.total }}</strong></td>
+          <td>
+            {% if sale.payment_method == 'cash' %}<span class="badge badge-success">Cash</span>
+            {% elif sale.payment_method == 'momo' %}<span class="badge badge-primary">MoMo</span>
+            {% elif sale.payment_method == 'split' %}<span class="badge badge-info">Split</span>
+            {% elif sale.payment_method == 'credit' %}<span class="badge badge-danger">Credit</span>
+            {% endif %}
+          </td>
+          <td class="text-sm text-muted">
+            {% if sale.change_given > 0 %}GHS {{ sale.change_given }}{% else %}—{% endif %}
+          </td>
+          <td class="text-sm text-muted">{{ sale.attendant_username }}</td>
+          <td>
+            {% if sale.sale_type == 'wholesale' %}
+            <span class="badge badge-warning">Wholesale</span>
+            {% else %}
+            <span class="badge badge-secondary">Retail</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <a href="{% url 'sales:sale_detail' sale.pk %}" class="btn btn-sm btn-outline">View</a>
+              <a href="{% url 'sales:receipt' sale.pk %}" class="btn btn-sm btn-primary">Receipt</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted" style="padding:40px;">
+            No sales found for the selected filters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&payment_method={{ selected_method }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">&#8249;</a>
+    {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}<span class="page-link active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <a href="?page={{ num }}&search={{ search }}&payment_method={{ selected_method }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&payment_method={{ selected_method }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">&#8250;</a>
+    {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+    <span class="text-muted text-sm" style="margin-left:8px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

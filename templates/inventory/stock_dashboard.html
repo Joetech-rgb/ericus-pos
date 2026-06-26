@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Inventory - Ericus POS{% endblock %}
+{% block page_title %}Inventory Management{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+{% if request.user.is_owner %}
+<a href="{% url 'inventory:movement_log' %}" class="btn btn-outline btn-sm">Movement Log</a>
+<a href="{% url 'inventory:audit_list' %}" class="btn btn-outline btn-sm">Stock Audits</a>
+<a href="{% url 'inventory:demo_units' %}" class="btn btn-warning btn-sm">Demo Units</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Total Products</div>
+    <div class="s-value">{{ summary.total_products|default:"0" }}</div>
+    <div class="s-sub">In system</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">In Stock</div>
+    <div class="s-value" style="color:#28a745;">{{ summary.in_stock|default:"0" }}</div>
+    <div class="s-sub">Above reorder point</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Low Stock</div>
+    <div class="s-value" style="color:#856404;">{{ summary.low_stock|default:"0" }}</div>
+    <div class="s-sub">Below reorder point</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Out of Stock</div>
+    <div class="s-value" style="color:#dc3545;">{{ summary.out_of_stock|default:"0" }}</div>
+    <div class="s-sub">Zero units</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Stock Value</div>
+    <div class="s-value">GHS {{ summary.total_value|default:"0.00" }}</div>
+    <div class="s-sub">At cost price</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Demo Units</div>
+    <div class="s-value">{{ summary.demo_units|default:"0" }}</div>
+    <div class="s-sub">Floor display</div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;align-items:start;">
+
+  <!-- Left: Stock Table -->
+  <div style="grid-column:1/-1;">
+
+    <!-- Filter Bar -->
+    <div class="card mb-3">
+      <div class="card-body" style="padding:14px 18px;">
+        <form method="get" class="filter-bar" style="margin-bottom:0;">
+          <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search product, brand, SKU, barcode..." style="max-width:280px;">
+          <select name="category" class="form-control" style="max-width:180px;">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <select name="status" class="form-control" style="max-width:160px;">
+            <option value="">All Stock Levels</option>
+            <option value="ok" {% if selected_status == "ok" %}selected{% endif %}>In Stock</option>
+            <option value="low" {% if selected_status == "low" %}selected{% endif %}>Low Stock</option>
+            <option value="out" {% if selected_status == "out" %}selected{% endif %}>Out of Stock</option>
+          </select>
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <a href="{% url 'inventory:stock_dashboard' %}" class="btn btn-outline">Clear</a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Stock Table -->
+    <div class="card">
+      <div class="card-head">
+        <h3>Stock Levels</h3>
+        <span class="text-muted text-sm">{{ page_obj.paginator.count }} product(s)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>In Stock</th>
+              <th>Reserved</th>
+              <th>Available</th>
+              <th>Reorder At</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sl in page_obj %}
+            <tr>
+              <td>
+                <div style="font-weight:bold;">{{ sl.product.name }}</div>
+                <div style="font-size:11px;color:var(--text3);">
+                  {% if sl.product.brand %}{{ sl.product.brand }}{% endif %}
+                  {% if sl.product.sku %} · {{ sl.product.sku }}{% endif %}
+                </div>
+              </td>
+              <td class="text-sm">{{ sl.product.category.name }}</td>
+              <td>
+                <strong style="font-size:15px;{% if sl.quantity == 0 %}color:#dc3545;{% elif sl.is_low_stock %}color:#856404;{% else %}color:#28a745;{% endif %}">
+                  {{ sl.quantity }}
+                </strong>
+              </td>
+              <td class="text-sm text-muted">{{ sl.reserved_quantity }}</td>
+              <td class="text-sm"><strong>{{ sl.available_quantity }}</strong></td>
+              <td class="text-sm text-muted">{{ sl.product.reorder_point }}</td>
+              <td>
+                <span class="badge badge-{{ sl.status_badge_class }}">{{ sl.status_label }}</span>
+              </td>
+              <td class="text-sm text-muted">{{ sl.last_updated|date:"d M Y H:i" }}</td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <a href="{% url 'inventory:stock_detail' sl.product.pk %}" class="btn btn-sm btn-outline">History</a>
+                  {% if request.user.is_owner %}
+                  <a href="{% url 'inventory:stock_adjustment' sl.product.pk %}" class="btn btn-sm btn-primary">Adjust</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center text-muted" style="padding:40px;">
+                <div style="font-size:32px;margin-bottom:8px;">📦</div>
+                <div>No stock records found.</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}" class="page-link">&#8249;</a>
+        {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="page-link active">{{ num }}</span>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}" class="page-link">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}" class="page-link">&#8250;</a>
+        {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+        <span class="text-muted text-sm" style="margin-left:8px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- Recent Movements -->
+<div class="card mt-3">
+  <div class="card-head">
+    <h3>Recent Stock Movements</h3>
+    {% if request.user.is_owner %}
+    <a href="{% url 'inventory:movement_log' %}" class="btn btn-sm btn-outline">View All</a>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Type</th>
+          <th>Qty Change</th>
+          <th>Before</th>
+          <th>After</th>
+          <th>Note</th>
+          <th>By</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mv in recent_movements %}
+        <tr>
+          <td>
+            <div style="font-weight:bold;font-size:13px;">{{ mv.product.name }}</div>
+            {% if mv.serial_number %}<div style="font-size:11px;color:var(--text3);">S/N: {{ mv.serial_number }}</div>{% endif %}
+          </td>
+          <td><span class="badge badge-{{ mv.movement_color }}">{{ mv.get_movement_type_display }}</span></td>
+          <td>
+            <strong style="color:{% if mv.is_inbound %}#28a745{% else %}#dc3545{% endif %};">
+              {% if mv.is_inbound %}+{% else %}-{% endif %}{{ mv.quantity }}
+            </strong>
+          </td>
+          <td class="text-sm text-muted">{{ mv.quantity_before }}</td>
+          <td class="text-sm"><strong>{{ mv.quantity_after }}</strong></td>
+          <td class="text-sm text-muted">{{ mv.note|truncatewords:8|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ mv.created_by_username|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ mv.created_at|date:"d M H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted" style="padding:20px;">No movements recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

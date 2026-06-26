@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Debt Report - Ericus POS{% endblock %}
+{% block page_title %}Debt Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Debt Report</h1>
+  <span class="badge badge-warning">Coming Soon</span>
+</div>
+
+<!-- Summary Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #dc3545;">
+    <div class="s-label">Total Outstanding</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #ffc107;">
+    <div class="s-label">Customers In Debt</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #dc3545;">
+    <div class="s-label">Overdue (14+ days)</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #17a2b8;">
+    <div class="s-label">Avg. Debt Per Customer</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-control" style="width:160px;">
+          <option value="">All</option>
+          <option value="overdue">Overdue Only</option>
+          <option value="critical">Critical (14+ days)</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Customer Type</label>
+        <select name="type" class="form-control" style="width:160px;">
+          <option value="">All Types</option>
+          <option value="retail">Retail</option>
+          <option value="wholesale">Wholesale</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head">
+    <h3>All Customers With Outstanding Balances</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer Name</th>
+          <th>Phone</th>
+          <th>Type</th>
+          <th>Credit Limit (GH₵)</th>
+          <th>Balance (GH₵)</th>
+          <th>Days Outstanding</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">View not yet active — data will appear here</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      Add a <code>debt_report</code> view using <code>run_report('customer_credit', {})</code> (already exists) 
+      filtered to customers where <code>credit_balance &gt; 0</code>. Wire as
+      <code>path('debt/', views.debt_report, name='debt_report')</code>.
+      The <code>customer_credit</code> report generator is a good starting point.
+    </div>
+  </div>
+</div>
+{% endblock %}

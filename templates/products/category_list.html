@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Categories - Ericus POS{% endblock %}
+{% block page_title %}Product Categories{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block topbar_actions %}
+{% if request.user.is_owner %}
+<a href="{% url 'category_create' %}" class="btn btn-primary btn-sm">+ Add Category</a>
+{% endif %}
+<a href="{% url 'product_list' %}" class="btn btn-outline btn-sm">&#8592; Products</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h3>All Categories <span class="badge badge-secondary" style="margin-left:6px;">{{ categories|length }}</span></h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Icon</th>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Products</th>
+          {% if request.user.is_owner %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td style="font-size:20px;">{{ cat.icon|default:"📦" }}</td>
+          <td><strong>{{ cat.name }}</strong></td>
+          <td class="text-sm text-muted">{{ cat.description|default:"—"|truncatewords:10 }}</td>
+          <td>
+            {% if cat.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'product_list' %}?category={{ cat.id }}" style="color:#4a6cf7;text-decoration:none;">
+              {{ cat.product_set.count }} product{{ cat.product_set.count|pluralize }}
+            </a>
+          </td>
+          {% if request.user.is_owner %}
+          <td>
+            <a href="{% url 'category_edit' cat.id %}" class="btn btn-sm btn-outline">Edit</a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if request.user.is_owner %}7{% else %}6{% endif %}" class="text-center text-muted" style="padding:40px;">
+            No categories yet.
+            {% if request.user.is_owner %}
+            <a href="{% url 'category_create' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Add First Category</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

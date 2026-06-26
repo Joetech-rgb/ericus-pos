@@ -1,0 +1,75 @@
+﻿{% extends "base.html" %}
+{% block title %}Audit Log Entry - Ericus POS{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .level-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+  .level-info     { background: #e8f4fd; color: #0b5ed7; }
+  .level-warning  { background: #fff3cd; color: #664d03; }
+  .level-critical { background: #f8d7da; color: #b02a37; }
+  .detail-row td { padding: 12px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .detail-label  { color: var(--text3); font-weight: 600; font-size: 13px; width: 180px; }
+  .detail-value  { color: var(--text); font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+  <a href="{% url 'audit:log_list' %}" style="color: #4a6cf7; text-decoration: none; font-size: 13px;">&larr; Back to Audit Trail</a>
+</div>
+
+<div class="card" style="background: var(--card-bg, #fff); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; max-width: 860px;">
+  <div class="card-head" style="padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--card-header-bg, #fafafa); display: flex; align-items: center; justify-content: space-between;">
+    <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text);">Log Entry #{{ log.pk }}</h3>
+    <span class="level-badge level-{{ log.level }}">{{ log.get_level_display }}</span>
+  </div>
+  <div class="card-body" style="padding: 24px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tbody>
+        <tr class="detail-row">
+          <td class="detail-label">Timestamp</td>
+          <td class="detail-value">{{ log.timestamp }}</td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">User</td>
+          <td class="detail-value">{{ log.username|default:"System" }} <span style="color: var(--text3); font-size: 12px;">({{ log.user_role|default:"&mdash;" }})</span></td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">Category</td>
+          <td class="detail-value">{{ log.get_category_display }}</td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">Action</td>
+          <td class="detail-value" style="font-weight: 500;">{{ log.action }}</td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">Description</td>
+          <td class="detail-value" style="line-height: 1.6; white-space: pre-wrap;">{{ log.description|default:"&mdash;" }}</td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">Target Object</td>
+          <td class="detail-value">
+            {% if log.object_type %}
+              <span style="font-weight: 500;">{{ log.object_type }}</span>
+              <span style="color: var(--text3);">#{{ log.object_id }}</span>
+              {% if log.object_repr %}<br><span style="font-size: 12px; color: var(--text3);">{{ log.object_repr }}</span>{% endif %}
+            {% else %}&mdash;{% endif %}
+          </td>
+        </tr>
+        <tr class="detail-row">
+          <td class="detail-label">IP Address</td>
+          <td class="detail-value" style="font-family: monospace;">{{ log.ip_address|default:"&mdash;" }}</td>
+        </tr>
+        {% if log.extra_data %}
+        <tr class="detail-row">
+          <td class="detail-label">Extra Data</td>
+          <td class="detail-value"><pre style="margin: 0; font-size: 12px; background: var(--card-header-bg, #f8f9fa); padding: 12px; border-radius: 6px; overflow-x: auto;">{{ log.extra_data }}</pre></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

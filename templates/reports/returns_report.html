@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Returns Report - Ericus POS{% endblock %}
+{% block page_title %}Returns Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Returns Report <span class="text-muted text-sm" style="font-weight:normal;">(Detailed)</span></h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'reports:returns' %}" class="btn btn-outline btn-sm">View Summary</a>
+    <span class="badge badge-warning">Coming Soon</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">End Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Return Reason</label>
+        <select name="reason" class="form-control" style="width:180px;">
+          <option value="">All Reasons</option>
+          <option value="defective">Defective</option>
+          <option value="wrong_item">Wrong Item</option>
+          <option value="changed_mind">Changed Mind</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #dc3545;">
+    <div class="s-label">Total Returns Value</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">No. of Returns</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Units Returned</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Refunds Issued</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Return Rate</div>
+    <div class="s-value" style="color:var(--text3);">— %</div>
+  </div>
+</div>
+
+<!-- Returns by reason -->
+<div class="grid-2" style="gap:16px;margin-bottom:16px;">
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Returns by Reason</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Reason</th><th>Count</th><th>Value (GH₵)</th><th>%</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Most Returned Products</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th>Returns</th><th>Value (GH₵)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Line items -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>All Return Transactions</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Original Sale</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Reason</th>
+          <th>Refund Method</th>
+          <th>Processed By</th>
+          <th class="text-right">Refund (GH₵)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">No data — view not yet active</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      This is the detailed view (individual transactions) vs <code>returns_summary</code> (aggregated).
+      Add a <code>returns_report</code> view querying your <code>Return</code> or <code>SaleReturn</code> model
+      with date + reason filters. Wire as <code>path('returns/detail/', views.returns_report, name='returns_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

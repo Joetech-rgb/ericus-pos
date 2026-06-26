@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — Stock Detail - Ericus POS{% endblock %}
+{% block page_title %}Stock Detail{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:stock_dashboard' %}" class="btn btn-outline btn-sm">&#8592; Back to Inventory</a>
+{% if request.user.is_owner %}
+<a href="{% url 'inventory:stock_adjustment' product.pk %}" class="btn btn-primary btn-sm">Adjust Stock</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Product Header -->
+<div class="card mb-3">
+  <div class="card-body" style="display:flex;gap:20px;align-items:center;">
+    {% if product.image %}
+    <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:72px;height:72px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);">
+    {% else %}
+    <div style="width:72px;height:72px;background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:28px;">📦</div>
+    {% endif %}
+    <div style="flex:1;">
+      <div style="font-size:18px;font-weight:bold;">{{ product.name }}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px;">
+        {% if product.brand %}{{ product.brand }} · {% endif %}
+        {% if product.model_number %}{{ product.model_number }} · {% endif %}
+        {{ product.category.name }}
+      </div>
+      {% if product.sku %}<div style="font-size:12px;color:var(--text3);">SKU: {{ product.sku }}</div>{% endif %}
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:32px;font-weight:bold;{% if stock_level.quantity == 0 %}color:#dc3545;{% elif stock_level.is_low_stock %}color:#856404;{% else %}color:#28a745;{% endif %}">
+        {{ stock_level.quantity }}
+      </div>
+      <div style="font-size:12px;color:var(--text3);">units in stock</div>
+      <span class="badge badge-{{ stock_level.status_badge_class }}" style="margin-top:4px;">{{ stock_level.status_label }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="align-items:start;gap:16px;">
+
+  <!-- Left: Movement History -->
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h3>Movement History</h3>
+        <span class="text-muted text-sm">{{ page_obj.paginator.count }} record(s)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Change</th>
+              <th>Before</th>
+              <th>After</th>
+              <th>Note</th>
+              <th>By</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for mv in page_obj %}
+            <tr>
+              <td><span class="badge badge-{{ mv.movement_color }}">{{ mv.get_movement_type_display }}</span></td>
+              <td>
+                <strong style="color:{% if mv.is_inbound %}#28a745{% else %}#dc3545{% endif %};">
+                  {% if mv.is_inbound %}+{% else %}-{% endif %}{{ mv.quantity }}
+                </strong>
+              </td>
+              <td class="text-sm text-muted">{{ mv.quantity_before }}</td>
+              <td class="text-sm"><strong>{{ mv.quantity_after }}</strong></td>
+              <td class="text-sm text-muted">{{ mv.note|truncatewords:8|default:"—" }}</td>
+              <td class="text-sm text-muted">{{ mv.created_by_username|default:"—" }}</td>
+              <td class="text-sm text-muted">{{ mv.created_at|date:"d M Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted" style="padding:30px;">No movements recorded yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.has_other_pages %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">&#8249;</a>
+        {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="page-link active">{{ num }}</span>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">&#8250;</a>
+        {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+        <span class="text-muted text-sm" style="margin-left:8px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Units & Demo Units -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Stock Info -->
+    <div class="card">
+      <div class="card-head"><h3>Stock Info</h3></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
+            <div style="font-size:11px;color:var(--text3);">In Stock</div>
+            <div style="font-size:20px;font-weight:bold;color:#28a745;">{{ stock_level.quantity }}</div>
+          </div>
+          <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
+            <div style="font-size:11px;color:var(--text3);">Reorder Point</div>
+            <div style="font-size:20px;font-weight:bold;">{{ product.reorder_point }}</div>
+          </div>
+          <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
+            <div style="font-size:11px;color:var(--text3);">Cost Price</div>
+            <div style="font-size:16px;font-weight:bold;">GHS {{ product.cost_price }}</div>
+          </div>
+          <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
+            <div style="font-size:11px;color:var(--text3);">Stock Value</div>
+            <div style="font-size:16px;font-weight:bold;">GHS {{ stock_level.quantity|floatformat:0 }}</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="{% url 'product_detail' product.pk %}" class="btn btn-outline btn-sm">View Product</a>
+          {% if request.user.is_owner %}
+          <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline btn-sm">Edit Product</a>
+          <a href="{% url 'inventory:stock_adjustment' product.pk %}" class="btn btn-primary btn-sm">Adjust Stock</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Serial Units -->
+    {% if units %}
+    <div class="card">
+      <div class="card-head">
+        <h3>Individual Units</h3>
+        <span class="text-muted text-sm">{{ units.count }} unit(s)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Serial #</th>
+              <th>Condition</th>
+              <th>Status</th>
+              <th>Received</th>
+              {% if request.user.is_owner %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for unit in units %}
+            <tr>
+              <td style="font-family:monospace;font-size:13px;">{{ unit.serial_number|default:"—" }}</td>
+              <td class="text-sm">{{ unit.get_condition_display|default:"—" }}</td>
+              <td>
+                <span class="badge {% if unit.status == 'in_stock' %}badge-success{% elif unit.status == 'sold' %}badge-danger{% elif unit.status == 'demo' %}badge-warning{% else %}badge-secondary{% endif %}">
+                  {{ unit.get_status_display }}
+                </span>
+              </td>
+              <td class="text-sm text-muted">{{ unit.received_at|date:"d M Y" }}</td>
+              {% if request.user.is_owner %}
+              <td>
+                {% if unit.status == 'in_stock' %}
+                <a href="{% url 'inventory:convert_to_demo' unit.pk %}" class="btn btn-sm btn-warning">→ Demo</a>
+                {% elif unit.status == 'demo' %}
+                <span class="text-muted text-sm">Floor unit</span>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Demo Units -->
+    {% if demo_units %}
+    <div class="card" style="border-color:#856404;">
+      <div class="card-head" style="border-color:#856404;">
+        <h3 style="color:#856404;">Demo / Floor Units</h3>
+        <span class="text-muted text-sm">{{ demo_units.count }} active</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Serial #</th>
+              <th>Converted</th>
+              <th>By</th>
+              {% if request.user.is_owner %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for demo in demo_units %}
+            <tr>
+              <td style="font-family:monospace;font-size:13px;">{{ demo.serial_number|default:"—" }}</td>
+              <td class="text-sm text-muted">{{ demo.converted_at|date:"d M Y" }}</td>
+              <td class="text-sm text-muted">{{ demo.converted_by.username|default:"—" }}</td>
+              {% if request.user.is_owner %}
+              <td>
+                <form method="post" action="{% url 'inventory:return_demo' demo.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="note" value="Returned to stock from product detail page">
+                  <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Return this demo unit to sellable stock?')">Return to Stock</button>
+                </form>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

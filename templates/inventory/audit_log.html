@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log — GatPOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --sidebar-bg:   #1a1a2e;
+    --accent:       #17a589;
+    --accent-hover: #148f77;
+    --danger:       #e74c3c;
+    --warning:      #f39c12;
+    --light-bg:     #f4f6f8;
+    --card-bg:      #ffffff;
+    --border:       #dde1e7;
+    --text-main:    #1a1a2e;
+    --text-muted:   #6b7280;
+    --font:         'Times New Roman', Times, serif;
+    --radius:       6px;
+    --shadow:       0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--light-bg); color: var(--text-main); font-size: 14px; }
+
+  .page-content { padding: 24px 28px; }
+
+  /* ── Page header ─────────────────────────────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .page-header h1 { font-size: 20px; font-weight: 700; }
+  .page-header .breadcrumb { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .18s, transform .12s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary  { background: var(--accent);  color: #fff; }
+  .btn-primary:hover  { background: var(--accent-hover); color: #fff; }
+  .btn-outline  { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
+  .btn-outline:hover  { border-color: var(--accent); color: var(--accent); }
+  .btn-danger   { background: var(--danger); color: #fff; }
+  .btn-danger:hover   { background: #c0392b; color: #fff; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+  /* ── Stat cards ──────────────────────────────────────────────── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    border-top: 3px solid var(--accent);
+  }
+  .stat-card.warn  { border-top-color: var(--warning); }
+  .stat-card.crit  { border-top-color: var(--danger); }
+  .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); font-weight: 600; }
+  .stat-card .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .stat-card .sub   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Quick filters ───────────────────────────────────────────── */
+  .quick-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .quick-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-muted);
+    transition: all .15s;
+  }
+  .quick-btn:hover,
+  .quick-btn.active { border-color: var(--accent); color: var(--accent); background: #f0faf8; }
+  .quick-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── Filter bar ──────────────────────────────────────────────── */
+  .filter-bar {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .filter-bar form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-group label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-muted);
+  }
+  .filter-group input,
+  .filter-group select {
+    font-family: var(--font); font-size: 13px;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    background: #fff;
+    min-width: 140px;
+    outline: none;
+    transition: border-color .18s;
+  }
+  .filter-group input:focus,
+  .filter-group select:focus { border-color: var(--accent); }
+  .filter-actions { display: flex; gap: 8px; align-items: flex-end; }
+
+  /* ── Table card ──────────────────────────────────────────────── */
+  .table-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .table-card-header h2 { font-size: 15px; font-weight: 700; }
+  .table-card-header .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .table-responsive { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--light-bg); }
+  thead th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .13s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f0faf8; }
+  tbody td { padding: 11px 14px; vertical-align: middle; }
+
+  /* ── Category icon cell ──────────────────────────────────────── */
+  .cat-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #e8f8f5;
+    color: var(--accent);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* ── Level badges ────────────────────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .badge-info     { background: #eaf4fb; color: #1a5276; border: 1px solid #aed6f1; }
+  .badge-warning  { background: #fef9e7; color: #9a7d0a; border: 1px solid #f9e79f; }
+  .badge-critical { background: #fdedec; color: #c0392b; border: 1px solid #f5b7b1; }
+
+  /* ── Timestamp ───────────────────────────────────────────────── */
+  .ts-main { font-weight: 600; white-space: nowrap; }
+  .ts-sub  { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Action text ─────────────────────────────────────────────── */
+  .action-text { font-weight: 600; max-width: 280px; }
+  .obj-repr    { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── IP ──────────────────────────────────────────────────────── */
+  .ip-text { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+
+  /* ── Pagination ──────────────────────────────────────────────── */
+  .pagination-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 20px; border-top: 1px solid var(--border);
+    flex-wrap: wrap; gap: 8px;
+    font-size: 13px; color: var(--text-muted);
+  }
+  .pagination-links { display: flex; gap: 4px; }
+  .pagination-links a,
+  .pagination-links span {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    text-decoration: none; font-size: 13px; color: var(--text-main);
+    transition: all .15s;
+  }
+  .pagination-links a:hover { border-color: var(--accent); color: var(--accent); }
+  .pagination-links span.current {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent); font-weight: 700;
+  }
+
+  /* ── Empty state ─────────────────────────────────────────────── */
+  .empty-state { padding: 50px 20px; text-align: center; color: var(--text-muted); }
+  .empty-state p { font-size: 14px; margin-top: 8px; }
+
+  /* ── Alert ───────────────────────────────────────────────────── */
+  .alert { padding: 11px 16px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; border-left: 4px solid transparent; }
+  .alert-success { background: #e8f8f5; border-color: var(--accent); color: #1e8449; }
+  .alert-warning { background: #fef9e7; border-color: var(--warning); color: #9a7d0a; }
+  .alert-error   { background: #fdedec; border-color: var(--danger);  color: #922b21; }
+
+  /* ── Clear confirm modal ─────────────────────────────────────── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 999;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    padding: 28px; width: 100%; max-width: 420px;
+    font-family: var(--font);
+  }
+  .modal-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--danger); }
+  .modal-box p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .btn-ghost {
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--text-muted); font-family: var(--font);
+    font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: var(--radius); cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); }
+
+  /* ── Row highlight for critical ──────────────────────────────── */
+  tbody tr.row-critical { background: #fff8f8; }
+  tbody tr.row-critical:hover { background: #fdedec; }
+  tbody tr.row-warning  { background: #fffdf0; }
+  tbody tr.row-warning:hover  { background: #fef9e7; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1>Audit Log</h1>
+      <div class="breadcrumb">Dashboard / Audit Log</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="{% url 'audit:export_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline btn-sm">
+        <i class="fas fa-download"></i> Export CSV
+      </a>
+      <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('clearModal').classList.add('open')">
+        <i class="fas fa-trash-alt"></i> Purge Old Logs
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <span class="label">Today's Entries</span>
+      <span class="value">{{ total_today }}</span>
+      <span class="sub">Actions logged today</span>
+    </div>
+    <div class="stat-card warn">
+      <span class="label">Today's Warnings</span>
+      <span class="value">{{ total_warnings }}</span>
+      <span class="sub">Warning + Critical today</span>
+    </div>
+    <div class="stat-card crit">
+      <span class="label">Total Critical</span>
+      <span class="value">{{ total_critical }}</span>
+      <span class="sub">All time critical events</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Filtered Records</span>
+      <span class="value">{{ page_obj.paginator.count }}</span>
+      <span class="sub">Matching current filters</span>
+    </div>
+  </div>
+
+  <!-- Quick filters -->
+  <div class="quick-bar">
+    <a href="?quick=today"    class="quick-btn {% if filters.quick == 'today' %}active{% endif %}">Today</a>
+    <a href="?quick=week"     class="quick-btn {% if filters.quick == 'week' %}active{% endif %}">Last 7 Days</a>
+    <a href="?quick=month"    class="quick-btn {% if filters.quick == 'month' %}active{% endif %}">Last 30 Days</a>
+    <a href="?quick=critical" class="quick-btn {% if filters.quick == 'critical' %}active{% endif %}">Critical Only</a>
+    <a href="?"               class="quick-btn {% if not filters.quick %}active{% endif %}">All Records</a>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <form method="get" action="">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Action, object, description...">
+      </div>
+      <div class="filter-group">
+        <label>Category</label>
+        <select name="category">
+          <option value="">All Categories</option>
+          {% for val, label in categories %}
+            <option value="{{ val }}" {% if filters.category == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Level</label>
+        <select name="level">
+          <option value="">All Levels</option>
+          {% for val, label in levels %}
+            <option value="{{ val }}" {% if filters.level == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>User</label>
+        <input type="text" name="user" value="{{ filters.user }}" placeholder="Username..." style="min-width:120px;">
+      </div>
+      <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" name="date_from" value="{{ filters.date_from }}">
+      </div>
+      <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" name="date_to" value="{{ filters.date_to }}">
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'audit:log_list' %}" class="btn btn-outline btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2>Activity Records</h2>
+      <span style="font-size:12px; color:var(--text-muted);">
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+      </span>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Level</th>
+            <th>Category</th>
+            <th>Action</th>
+            <th>Object</th>
+            <th>IP Address</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in page_obj %}
+          <tr class="{% if log.level == 'critical' %}row-critical{% elif log.level == 'warning' %}row-warning{% endif %}">
+
+            <td>
+              <span class="ts-main">{{ log.timestamp|date:"d M Y" }}</span>
+              <span class="ts-sub">{{ log.timestamp|date:"H:i:s" }}</span>
+            </td>
+
+            <td>
+              <span style="font-weight:600;">{{ log.username|default:"System" }}</span>
+              {% if log.user_role %}
+                <span style="display:block; font-size:11px; color:var(--text-muted);">{{ log.user_role|capfirst }}</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if log.level == 'info' %}
+                <span class="badge badge-info">Info</span>
+              {% elif log.level == 'warning' %}
+                <span class="badge badge-warning">Warning</span>
+              {% elif log.level == 'critical' %}
+                <span class="badge badge-critical">Critical</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="cat-cell">
+                <span class="cat-icon"><i class="fas {{ log.category_icon }}"></i></span>
+                <span>{{ log.get_category_display }}</span>
+              </div>
+            </td>
+
+            <td>
+              <span class="action-text">{{ log.action }}</span>
+              {% if log.description %}
+                <span class="obj-repr">{{ log.description|truncatechars:60 }}</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if log.object_type %}
+                <span style="font-weight:600; font-size:12px;">{{ log.object_type }}</span>
+                {% if log.object_repr %}
+                  <span class="obj-repr">{{ log.object_repr|truncatechars:40 }}</span>
+                {% endif %}
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+
+            <td><span class="ip-text">{{ log.ip_address|default:"—" }}</span></td>
+
+            <td>
+              <a href="{% url 'audit:log_detail' log.pk %}" class="btn btn-outline btn-sm">View</a>
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <strong>No audit records found.</strong>
+                <p>Adjust your filters or check back after activity has been logged.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-bar">
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <div class="pagination-links">
+        {% if page_obj.has_previous %}
+          <a href="?page=1&{{ request.GET.urlencode }}">&laquo;</a>
+          <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">&lsaquo;</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="current">{{ num }}</span>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">&rsaquo;</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">&raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Purge Confirm Modal -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal-box">
+    <h3>Purge Old Audit Logs</h3>
+    <p>This will permanently delete all audit log entries older than 90 days. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="document.getElementById('clearModal').classList.remove('open')">Cancel</button>
+      <form method="post" action="{% url 'audit:clear' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm">Confirm Purge</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('clearModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+</script>
+{% endblock %}

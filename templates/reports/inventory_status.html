@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Inventory Status - Ericus POS{% endblock %}
+{% block page_title %}Inventory Status{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="?format=csv{% if selected_category %}&category_id={{ selected_category }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}" class="btn btn-sm btn-outline">↓ CSV</a>
+<a href="?format=pdf{% if selected_category %}&category_id={{ selected_category }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}" class="btn btn-sm btn-outline">↓ PDF</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Inventory Status</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <select name="category_id" class="form-control" style="width:180px;">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);font-family:'Times New Roman',serif;cursor:pointer;">
+      <input type="checkbox" name="low_stock_only" value="1" {% if low_stock_only %}checked{% endif %}> Low stock only
+    </label>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{% url 'reports:inventory' %}" class="btn btn-outline">Clear</a>
+  </div>
+</form>
+
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Total Products</div>
+    <div class="s-value">{{ data.rows|length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Low Stock Items</div>
+    <div class="s-value" style="color:{% if data.low_stock_count > 0 %}#dc3545{% else %}#28a745{% endif %};">{{ data.low_stock_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Stock Value</div>
+    <div class="s-value">GHS {{ data.total_value }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Stock Levels</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th class="text-right">In Stock</th>
+          <th class="text-right">Reorder Point</th>
+          <th class="text-right">Stock Value (GHS)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+        <tr>
+          <td style="font-weight:bold;">
+            {{ row.product.name }}
+            {% if row.product.brand %}<div style="font-size:11px;color:var(--text3);">{{ row.product.brand }}</div>{% endif %}
+          </td>
+          <td style="color:var(--text2);">{{ row.product.category.name|default:"—" }}</td>
+          <td class="text-right" style="font-weight:bold;color:{% if row.is_low %}#dc3545{% else %}var(--text){% endif %};">{{ row.current_qty }}</td>
+          <td class="text-right" style="color:var(--text3);">{{ row.reorder_point }}</td>
+          <td class="text-right">{{ row.stock_value }}</td>
+          <td>
+            {% if row.current_qty == 0 %}
+            <span class="badge badge-danger">Out of Stock</span>
+            {% elif row.is_low %}
+            <span class="badge badge-warning">Low Stock</span>
+            {% else %}
+            <span class="badge badge-success">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">No products found.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if data.rows %}
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);">
+          <td colspan="4" style="padding:10px 14px;font-weight:bold;text-align:right;">Total Stock Value</td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;">GHS {{ data.total_value }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

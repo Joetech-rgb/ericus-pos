@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Suppliers - Ericus POS{% endblock %}
+{% block page_title %}Suppliers{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'purchases:supplier_create' %}" class="btn btn-primary btn-sm">+ Add Supplier</a>
+<a href="{% url 'purchases:po_list' %}" class="btn btn-outline btn-sm">Purchase Orders</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search supplier name..." style="max-width:280px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:'Times New Roman',serif;cursor:pointer;">
+        <input type="checkbox" name="inactive" value="1" {% if show_inactive %}checked{% endif %}>
+        Show Inactive
+      </label>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'purchases:supplier_list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Suppliers Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Suppliers</h3>
+    <span class="text-muted text-sm">{{ page_obj.paginator.count }} supplier(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Supplier Name</th>
+          <th>Contact Person</th>
+          <th>Phone</th>
+          <th>City</th>
+          <th>Total Orders</th>
+          <th>Total Spent</th>
+          <th>Pending</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for supplier in page_obj %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td>
+            <div style="font-weight:bold;">{{ supplier.name }}</div>
+            {% if supplier.email %}<div style="font-size:11px;color:var(--text3);">{{ supplier.email }}</div>{% endif %}
+          </td>
+          <td class="text-sm">{{ supplier.contact_person|default:"—" }}</td>
+          <td class="text-sm">
+            {{ supplier.phone|default:"—" }}
+            {% if supplier.alternate_phone %}<br><span class="text-muted">{{ supplier.alternate_phone }}</span>{% endif %}
+          </td>
+          <td class="text-sm">{{ supplier.city|default:"—" }}</td>
+          <td class="text-sm">{{ supplier.total_orders }}</td>
+          <td class="text-sm">GHS {{ supplier.total_spent }}</td>
+          <td>
+            {% if supplier.pending_orders > 0 %}
+            <span class="badge badge-warning">{{ supplier.pending_orders }} pending</span>
+            {% else %}
+            <span class="text-muted text-sm">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if supplier.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <a href="{% url 'purchases:supplier_detail' supplier.pk %}" class="btn btn-sm btn-outline">View</a>
+              <a href="{% url 'purchases:supplier_edit' supplier.pk %}" class="btn btn-sm btn-primary">Edit</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted" style="padding:40px;">
+            No suppliers found.
+            <a href="{% url 'purchases:supplier_create' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Add First Supplier</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="page-link">&#8249;</a>
+    {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}<span class="page-link active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <a href="?page={{ num }}&q={{ query }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="page-link">&#8250;</a>
+    {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

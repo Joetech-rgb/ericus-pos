@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Movement Log - Ericus POS{% endblock %}
+{% block page_title %}Stock Movement Log{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:stock_dashboard' %}" class="btn btn-outline btn-sm">&#8592; Inventory</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Product name, serial, note..." style="max-width:240px;">
+      <select name="type" class="form-control" style="max-width:200px;">
+        <option value="">All Movement Types</option>
+        {% for value, label in movement_types %}
+        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="max-width:160px;">
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="max-width:160px;">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'inventory:movement_log' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Movements Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>All Stock Movements</h3>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="text-muted text-sm">{{ page_obj.paginator.count }} record(s)</span>
+      <span class="badge badge-info">Insert-only · Cannot be deleted</span>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Product</th>
+          <th>Movement</th>
+          <th>Qty Change</th>
+          <th>Before</th>
+          <th>After</th>
+          <th>Serial</th>
+          <th>Reference</th>
+          <th>Note</th>
+          <th>By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mv in page_obj %}
+        <tr>
+          <td class="text-sm" style="white-space:nowrap;">{{ mv.created_at|date:"d M Y" }}<br><span class="text-muted">{{ mv.created_at|date:"H:i" }}</span></td>
+          <td>
+            <a href="{% url 'inventory:stock_detail' mv.product.pk %}" style="color:var(--text);text-decoration:none;font-weight:bold;">{{ mv.product.name }}</a>
+            <div style="font-size:11px;color:var(--text3);">{{ mv.product.category.name }}</div>
+          </td>
+          <td>
+            <span class="badge badge-{{ mv.movement_color }}">{{ mv.get_movement_type_display }}</span>
+          </td>
+          <td>
+            <strong style="font-size:14px;color:{% if mv.is_inbound %}#28a745{% else %}#dc3545{% endif %};">
+              {% if mv.is_inbound %}+{% else %}-{% endif %}{{ mv.quantity }}
+            </strong>
+          </td>
+          <td class="text-sm text-muted">{{ mv.quantity_before }}</td>
+          <td class="text-sm"><strong>{{ mv.quantity_after }}</strong></td>
+          <td class="text-sm text-muted">{{ mv.serial_number|default:"—" }}</td>
+          <td class="text-sm text-muted">
+            {% if mv.reference_label %}{{ mv.reference_label }}
+            {% elif mv.reference_type %}{{ mv.reference_type }} #{{ mv.reference_id }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-sm text-muted" style="max-width:160px;">{{ mv.note|truncatewords:8|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ mv.created_by_username|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted" style="padding:40px;">
+            <div style="font-size:32px;margin-bottom:8px;">📋</div>
+            <div>No movements found for the selected filters.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&type={{ selected_type }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">&#8249;</a>
+    {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <span class="page-link active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}&search={{ search }}&type={{ selected_type }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&type={{ selected_type }}&date_from={{ date_from }}&date_to={{ date_to }}" class="page-link">&#8250;</a>
+    {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+    <span class="text-muted text-sm" style="margin-left:8px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

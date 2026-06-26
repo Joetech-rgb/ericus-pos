@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Sales Summary - Ericus POS{% endblock %}
+{% block page_title %}Sales Summary Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block extra_head %}
+<script src="/static/js/chart.min.js"></script>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf" class="btn btn-sm btn-outline">↓ PDF</a>
+<a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=csv" class="btn btn-sm btn-outline">↓ CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Sales Summary</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<!-- Date Filter -->
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+    <div style="margin-top:16px;">
+      <a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf" class="btn btn-outline">↓ PDF</a>
+    </div>
+    <div style="margin-top:16px;">
+      <a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=csv" class="btn btn-outline">↓ CSV</a>
+    </div>
+  </div>
+</form>
+
+<!-- Stats -->
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Total Transactions</div>
+    <div class="s-value">{{ data.total_transactions }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Gross Revenue</div>
+    <div class="s-value">GHS {{ data.gross_revenue }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Discounts</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ data.total_discounts }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Gross Profit</div>
+    <div class="s-value" style="color:{% if data.gross_profit > 0 %}#28a745{% else %}#dc3545{% endif %};">GHS {{ data.gross_profit }}</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="grid-2" style="gap:16px;margin-bottom:18px;">
+  <div class="card">
+    <div class="card-head"><h3>Daily Revenue Trend</h3></div>
+    <div class="card-body"><canvas id="trendChart" height="200"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Top Products</h3></div>
+    <div class="card-body"><canvas id="topChart" height="200"></canvas></div>
+  </div>
+</div>
+
+<!-- Daily Breakdown Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Daily Breakdown</h3>
+    <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th class="text-right">Transactions</th>
+          <th class="text-right">Revenue (GHS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.daily_breakdown %}
+        <tr>
+          <td>{{ row.created_at__date }}</td>
+          <td class="text-right">{{ row.count }}</td>
+          <td class="text-right" style="font-weight:bold;">{{ row.revenue }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-center text-muted" style="padding:30px;">No sales data for this period.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if data.daily_breakdown %}
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);">
+          <td style="padding:10px 14px;font-weight:bold;">Total</td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;">{{ data.total_transactions }}</td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;">GHS {{ data.gross_revenue }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const trendData = {{ trend_chart_json|safe }};
+const topData = {{ top_chart_json|safe }};
+
+if (document.getElementById('trendChart') && trendData && trendData.data) {
+  new Chart(document.getElementById('trendChart'), trendData);
+}
+
+if (document.getElementById('topChart') && topData && topData.data) {
+  new Chart(document.getElementById('topChart'), topData);
+}
+</script>
+{% endblock %}

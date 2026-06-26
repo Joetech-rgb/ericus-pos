@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Returns Summary - Ericus POS{% endblock %}
+{% block page_title %}Returns Summary{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Returns Summary</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+  </div>
+</form>
+
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Total Returns</div>
+    <div class="s-value">{{ data.total_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Refunded</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ data.total_refunded }}</div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;">
+
+  <div class="card">
+    <div class="card-head">
+      <h3>Returns by Reason</h3>
+      <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reason</th>
+            <th class="text-right">Count</th>
+            <th class="text-right">Total Refunded (GHS)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.by_reason %}
+          <tr>
+            <td style="font-weight:bold;">{{ row.reason|title }}</td>
+            <td class="text-right">{{ row.count }}</td>
+            <td class="text-right" style="color:#dc3545;">{{ row.total_refunded|default:"0.00" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No returns in this period.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Resolutions (Resolved Only)</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Resolution</th>
+            <th class="text-right">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.by_resolution %}
+          <tr>
+            <td style="font-weight:bold;">{{ row.resolution|title }}</td>
+            <td class="text-right">{{ row.count }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2" class="text-center text-muted" style="padding:20px;">No resolved returns.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

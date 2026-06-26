@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Stock Adjustment - {{ product.name }} - Ericus POS{% endblock %}
+{% block page_title %}Stock Adjustment{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:stock_detail' product.pk %}" class="btn btn-outline btn-sm">&#8592; Back to Stock Detail</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="grid-2" style="align-items:start;max-width:900px;">
+
+  <!-- Product Info Card -->
+  <div class="card">
+    <div class="card-head"><h3>Product</h3></div>
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:56px;height:56px;object-fit:contain;border:1px solid var(--border);border-radius:var(--radius);">
+        {% else %}
+        <div style="width:56px;height:56px;background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:24px;">📦</div>
+        {% endif %}
+        <div>
+          <div style="font-weight:bold;font-size:15px;">{{ product }}</div>
+          <div style="font-size:12px;color:var(--text3);">{{ product.category.name }}</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div class="s-label">Current Stock</div>
+          <div class="s-value" style="color:{% if stock_level.is_out_of_stock %}#dc3545{% elif stock_level.is_low_stock %}#856404{% else %}#28a745{% endif %};">
+            {{ stock_level.quantity }}
+          </div>
+        </div>
+        <div>
+          <div class="s-label">Available</div>
+          <div class="s-value">{{ stock_level.available_quantity }}</div>
+        </div>
+        <div>
+          <div class="s-label">Reserved</div>
+          <div class="s-value">{{ stock_level.reserved_quantity }}</div>
+        </div>
+        <div>
+          <div class="s-label">Reorder At</div>
+          <div class="s-value">{{ product.reorder_point }}</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div>
+        <div class="s-label">Status</div>
+        <span class="badge badge-{{ stock_level.status_badge_class }}">{{ stock_level.status_label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjustment Form -->
+  <div class="card">
+    <div class="card-head">
+      <h3>Make Adjustment</h3>
+      <span class="badge badge-warning">Owner PIN Required</span>
+    </div>
+    <div class="card-body">
+
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:12px;color:#856404;">
+        ⚠️ Every stock adjustment is logged permanently to the audit trail with your name and reason.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Direction -->
+        <div class="form-group">
+          <label class="form-label">Adjustment Direction *</label>
+          <div style="display:flex;gap:10px;">
+            <label style="flex:1;cursor:pointer;">
+              <input type="radio" name="direction" value="in" {% if form.direction.value == 'in' or not form.direction.value %}checked{% endif %} onchange="updateDirection()" style="margin-right:6px;">
+              <span style="font-size:13px;color:#28a745;font-weight:bold;">▲ Add Stock (In)</span>
+            </label>
+            <label style="flex:1;cursor:pointer;">
+              <input type="radio" name="direction" value="out" {% if form.direction.value == 'out' %}checked{% endif %} onchange="updateDirection()" style="margin-right:6px;">
+              <span style="font-size:13px;color:#dc3545;font-weight:bold;">▼ Remove Stock (Out)</span>
+            </label>
+          </div>
+          {% if form.direction.errors %}<ul class="errorlist">{% for e in form.direction.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <!-- Reason -->
+        <div class="form-group">
+          <label class="form-label">Reason *</label>
+          <select name="adjustment_type" class="form-control" id="adjType">
+            <option value="">-- Select Reason --</option>
+            <optgroup label="Add Stock (In)" id="inGroup">
+              <option value="purchase" {% if form.adjustment_type.value == 'purchase' %}selected{% endif %}>Purchase Received</option>
+              <option value="return" {% if form.adjustment_type.value == 'return' %}selected{% endif %}>Customer Return</option>
+              <option value="adjustment_in" {% if form.adjustment_type.value == 'adjustment_in' %}selected{% endif %}>Manual Correction (In)</option>
+              <option value="initial" {% if form.adjustment_type.value == 'initial' %}selected{% endif %}>Initial Stock Entry</option>
+              <option value="demo_to_stock" {% if form.adjustment_type.value == 'demo_to_stock' %}selected{% endif %}>Demo Unit → Stock</option>
+            </optgroup>
+            <optgroup label="Remove Stock (Out)" id="outGroup">
+              <option value="adjustment_out" {% if form.adjustment_type.value == 'adjustment_out' %}selected{% endif %}>Manual Correction (Out)</option>
+              <option value="damaged" {% if form.adjustment_type.value == 'damaged' %}selected{% endif %}>Damaged / Written Off</option>
+              <option value="demo" {% if form.adjustment_type.value == 'demo' %}selected{% endif %}>Converted to Demo Unit</option>
+            </optgroup>
+          </select>
+          {% if form.adjustment_type.errors %}<ul class="errorlist">{% for e in form.adjustment_type.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <!-- Quantity -->
+        <div class="form-group">
+          <label class="form-label">Quantity *</label>
+          <input type="number" name="quantity" value="{{ form.quantity.value|default:'1' }}" class="form-control" min="1" id="qtyInput" oninput="updatePreview()" required>
+          {% if form.quantity.errors %}<ul class="errorlist">{% for e in form.quantity.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <!-- Serial Number (optional) -->
+        {% if product.track_serials %}
+        <div class="form-group">
+          <label class="form-label">Serial Number <span class="text-muted">(optional)</span></label>
+          <input type="text" name="serial_number" value="{{ form.serial_number.value|default:'' }}" class="form-control" placeholder="Enter serial number if applicable">
+        </div>
+        {% endif %}
+
+        <!-- Preview -->
+        <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Preview</div>
+          <div style="display:flex;gap:20px;align-items:center;">
+            <div>
+              <div style="font-size:11px;color:var(--text3);">Current</div>
+              <div style="font-size:18px;font-weight:bold;">{{ stock_level.quantity }}</div>
+            </div>
+            <div style="font-size:20px;" id="dirArrow">→</div>
+            <div>
+              <div style="font-size:11px;color:var(--text3);">After Adjustment</div>
+              <div style="font-size:18px;font-weight:bold;" id="newQty">{{ stock_level.quantity }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="form-group">
+          <label class="form-label">Additional Notes *</label>
+          <textarea name="note" class="form-control" placeholder="Required: explain why this adjustment is being made..." required>{{ form.note.value|default:'' }}</textarea>
+          {% if form.note.errors %}<ul class="errorlist">{% for e in form.note.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Save Adjustment</button>
+          <a href="{% url 'inventory:stock_detail' product.pk %}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const currentStock = {{ stock_level.quantity }};
+
+function updatePreview() {
+  const qty = parseInt(document.getElementById('qtyInput').value) || 0;
+  const isIn = document.querySelector('input[name="direction"]:checked').value === 'in';
+  const newQty = isIn ? currentStock + qty : currentStock - qty;
+  const el = document.getElementById('newQty');
+  el.textContent = newQty;
+  el.style.color = newQty <= 0 ? '#dc3545' : newQty <= {{ product.reorder_point }} ? '#856404' : '#28a745';
+  document.getElementById('dirArrow').textContent = isIn ? '→ +' + qty : '→ -' + qty;
+}
+
+function updateDirection() {
+  updatePreview();
+}
+
+updatePreview();
+</script>
+{% endblock %}

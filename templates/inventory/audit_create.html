@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}New Stock Audit - Ericus POS{% endblock %}
+{% block page_title %}New Stock Audit{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:audit_list' %}" class="btn btn-outline btn-sm">&#8592; Back to Audits</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto;">
+  <div class="card">
+    <div class="card-head">
+      <h3>Start a New Stock Audit</h3>
+    </div>
+    <div class="card-body">
+
+      <div style="background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);">
+        <strong>How it works:</strong> Starting an audit creates a snapshot of current stock levels.
+        You then enter physical counts for each product. When you complete the audit, any discrepancies
+        are automatically corrected in the system.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="form-group">
+          <label class="form-label">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">{{ field.help_text }}</div>
+          {% endif %}
+          {% if field.errors %}
+            <ul class="errorlist">
+              {% for e in field.errors %}<li>{{ e }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div style="display:flex;gap:10px;margin-top:24px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">
+            Start Audit
+          </button>
+          <a href="{% url 'inventory:audit_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

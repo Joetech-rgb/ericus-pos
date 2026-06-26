@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Add Unit — {{ product }} - Ericus POS{% endblock %}
+{% block page_title %}Add Unit / Serial Number{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'product_detail' product.id %}" class="btn btn-outline btn-sm">&#8592; Back to {{ product }}</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:520px;">
+
+  <!-- Product Summary -->
+  <div class="card mb-3">
+    <div class="card-body" style="display:flex;gap:16px;align-items:center;">
+      {% if product.image %}
+      <img src="{{ product.image.url }}" style="width:56px;height:56px;object-fit:contain;border:1px solid var(--border);border-radius:var(--radius);">
+      {% else %}
+      <div style="width:56px;height:56px;background:var(--page-bg);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:24px;">📦</div>
+      {% endif %}
+      <div>
+        <div style="font-size:15px;font-weight:bold;font-family:'Times New Roman',serif;color:var(--text);">{{ product }}</div>
+        <div style="font-size:12px;color:var(--text3);">{{ product.category.name }} · {{ product.current_stock }} in stock</div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="card">
+      <div class="card-head"><h3>Unit Details</h3></div>
+      <div class="card-body">
+
+        <div class="form-group">
+          <label class="form-label">Serial Number</label>
+          <input type="text" name="serial_number" value="{{ form.serial_number.value|default:'' }}" class="form-control" placeholder="Scan or type serial number (optional)" autofocus>
+          {% if form.serial_number.errors %}<ul class="errorlist">{% for e in form.serial_number.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Condition *</label>
+            <select name="condition" class="form-control">
+              {% for val, label in form.fields.condition.choices %}
+              <option value="{{ val }}" {% if form.condition.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Purchase Cost (GHS)</label>
+            <input type="number" name="purchase_cost" value="{{ form.purchase_cost.value|default:product.cost_price }}" class="form-control" step="0.01" min="0">
+            {% if form.purchase_cost.errors %}<ul class="errorlist">{% for e in form.purchase_cost.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" placeholder="Any notes about this unit (e.g. minor scratch on back)..." style="min-height:70px;">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button type="submit" class="btn btn-primary" style="flex:1;">Add Unit</button>
+      <a href="{% url 'product_detail' product.id %}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

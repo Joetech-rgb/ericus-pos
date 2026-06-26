@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ action }} Expense — GatPOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --sidebar-bg:   #1a1a2e;
+    --sidebar-text: #c8ccd4;
+    --accent:       #17a589;
+    --accent-hover: #148f77;
+    --danger:       #e74c3c;
+    --warning:      #f39c12;
+    --light-bg:     #f4f6f8;
+    --card-bg:      #ffffff;
+    --border:       #dde1e7;
+    --text-main:    #1a1a2e;
+    --text-muted:   #6b7280;
+    --font:         'Times New Roman', Times, serif;
+    --radius:       6px;
+    --shadow:       0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--light-bg);
+    color: var(--text-main);
+    font-size: 14px;
+  }
+
+  .page-content { padding: 24px 28px; }
+
+  /* ── Page header ─────────────────────────────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-header h1 { font-size: 20px; font-weight: 700; color: var(--text-main); }
+  .page-header .breadcrumb { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .18s, transform .12s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary  { background: var(--accent); color: #fff; }
+  .btn-primary:hover  { background: var(--accent-hover); color: #fff; }
+  .btn-outline  { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
+  .btn-outline:hover  { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Form card ───────────────────────────────────────────────── */
+  .form-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    max-width: 860px;
+  }
+
+  .form-card-header {
+    background: var(--sidebar-bg);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .form-card-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: .3px;
+  }
+
+  .form-card-header .header-accent {
+    width: 4px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .form-body { padding: 28px 24px; }
+
+  /* ── Section title ───────────────────────────────────────────── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--accent);
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--border);
+    margin-bottom: 18px;
+    margin-top: 28px;
+  }
+
+  .section-title:first-child { margin-top: 0; }
+
+  /* ── Grid ────────────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+  }
+
+  .form-grid .span-2 { grid-column: 1 / -1; }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .span-2 { grid-column: 1; }
+  }
+
+  /* ── Field ───────────────────────────────────────────────────── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+  }
+
+  .field label .required {
+    color: var(--danger);
+    margin-left: 2px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    background: #fff;
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+    width: 100%;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(23,165,137,.1);
+  }
+
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .field .help-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .field .error-text {
+    font-size: 11px;
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  /* ── Checkbox row ────────────────────────────────────────────── */
+  .check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: #fafbfc;
+    cursor: pointer;
+    transition: border-color .18s;
+  }
+
+  .check-row:hover { border-color: var(--accent); }
+
+  .check-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+  }
+
+  .check-row .check-label { font-size: 13px; font-weight: 600; color: var(--text-main); }
+  .check-row .check-hint  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Receipt upload ──────────────────────────────────────────── */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .18s, background .18s;
+    background: #fafbfc;
+  }
+
+  .upload-area:hover { border-color: var(--accent); background: #f0faf8; }
+
+  .upload-area input[type="file"] {
+    display: none;
+  }
+
+  .upload-area .upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .upload-area .upload-icon {
+    font-size: 28px;
+    line-height: 1;
+    color: var(--text-muted);
+  }
+
+  .upload-area .upload-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .upload-area .upload-sub {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  .current-receipt {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .current-receipt a { color: var(--accent); }
+
+  /* ── Status info box (edit mode) ─────────────────────────────── */
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    background: #fef9e7;
+    border: 1px solid #f9e79f;
+    font-size: 12px;
+    color: #9a7d0a;
+    font-weight: 600;
+  }
+
+  .status-info.approved { background: #e8f8f5; border-color: #a9dfbf; color: #148f77; }
+  .status-info.rejected { background: #fdedec; border-color: #f5b7b1; color: #c0392b; }
+
+  /* ── Form footer ─────────────────────────────────────────────── */
+  .form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 24px;
+    border-top: 1px solid var(--border);
+    background: #fafbfc;
+  }
+
+  /* ── Alert ───────────────────────────────────────────────────── */
+  .alert {
+    padding: 11px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 16px;
+    border-left: 4px solid transparent;
+  }
+  .alert-success { background: #e8f8f5; border-color: var(--accent); color: #1e8449; }
+  .alert-error   { background: #fdedec; border-color: var(--danger); color: #922b21; }
+
+  /* ── Non-field errors ────────────────────────────────────────── */
+  .non-field-errors {
+    background: #fdedec;
+    border: 1px solid #f5b7b1;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 18px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1>{{ action }} Expense</h1>
+      <div class="breadcrumb">Dashboard / Expenses / {{ action }}</div>
+    </div>
+    <a href="{% url 'expenses:list' %}" class="btn btn-outline">Back to Expenses</a>
+  </div>
+
+  <!-- Status info for edit mode -->
+  {% if expense %}
+    <div class="status-info {% if expense.is_approved %}approved{% elif expense.is_rejected %}rejected{% endif %}" style="margin-bottom:18px; max-width:860px;">
+      Current Status:
+      {% if expense.is_approved %}Approved by {{ expense.approved_by.get_full_name|default:expense.approved_by.username }} on {{ expense.approved_at|date:"d M Y" }}
+      {% elif expense.is_rejected %}Rejected — {{ expense.reject_reason|default:"No reason given" }}
+      {% else %}Pending Approval
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="header-accent"></div>
+      <h2>{{ action }} Expense Record</h2>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="form-body">
+
+        {% if form.non_field_errors %}
+          <div class="non-field-errors">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Core Details -->
+        <div class="section-title">Core Details</div>
+        <div class="form-grid">
+
+          <div class="field span-2">
+            <label for="{{ form.title.id_for_label }}">Title <span class="required">*</span></label>
+            {{ form.title }}
+            {% if form.title.help_text %}<span class="help-text">{{ form.title.help_text }}</span>{% endif %}
+            {% for error in form.title.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.category.id_for_label }}">Category <span class="required">*</span></label>
+            {{ form.category }}
+            {% for error in form.category.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.expense_date.id_for_label }}">Expense Date <span class="required">*</span></label>
+            {{ form.expense_date }}
+            {% for error in form.expense_date.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.amount.id_for_label }}">Amount (GH&#8373;) <span class="required">*</span></label>
+            {{ form.amount }}
+            {% for error in form.amount.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.payment_method.id_for_label }}">Payment Method <span class="required">*</span></label>
+            {{ form.payment_method }}
+            {% for error in form.payment_method.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field span-2">
+            <label for="{{ form.reference.id_for_label }}">Reference</label>
+            {{ form.reference }}
+            {% if form.reference.help_text %}<span class="help-text">{{ form.reference.help_text }}</span>{% endif %}
+            {% for error in form.reference.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field span-2">
+            <label for="{{ form.notes.id_for_label }}">Notes</label>
+            {{ form.notes }}
+            {% for error in form.notes.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+        </div>
+
+        <!-- Receipt -->
+        <div class="section-title">Receipt</div>
+        <div class="upload-area" onclick="document.getElementById('id_receipt_image').click();">
+          <label class="upload-label" for="id_receipt_image">
+            <span class="upload-icon">&#128247;</span>
+            <span class="upload-text">Click to attach receipt image</span>
+            <span class="upload-sub">JPG, PNG, PDF — optional</span>
+          </label>
+          {{ form.receipt_image }}
+        </div>
+        {% if expense and expense.receipt_image %}
+          <div class="current-receipt">
+            Current receipt: <a href="{{ expense.receipt_image.url }}" target="_blank">View attached receipt</a>
+          </div>
+        {% endif %}
+        {% for error in form.receipt_image.errors %}<span class="error-text" style="font-size:11px;">{{ error }}</span>{% endfor %}
+
+        <!-- Recurring -->
+        <div class="section-title">Recurring</div>
+        <div class="form-grid">
+
+          <div class="field span-2">
+            <label class="check-row" for="{{ form.is_recurring.id_for_label }}">
+              {{ form.is_recurring }}
+              <div>
+                <div class="check-label">Mark as Recurring Expense</div>
+                <div class="check-hint">Tick if this expense repeats regularly, e.g. monthly rent or salaries.</div>
+              </div>
+            </label>
+            {% for error in form.is_recurring.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="field span-2" id="recurrence-note-field" style="display:none;">
+            <label for="{{ form.recurrence_note.id_for_label }}">Recurrence Note</label>
+            {{ form.recurrence_note }}
+            {% if form.recurrence_note.help_text %}<span class="help-text">{{ form.recurrence_note.help_text }}</span>{% endif %}
+            {% for error in form.recurrence_note.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+          </div>
+
+        </div>
+
+      </div><!-- /form-body -->
+
+      <div class="form-footer">
+        <a href="{% url 'expenses:list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ action }} Expense</button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+  // Show/hide recurrence note based on checkbox
+  const recurringChk = document.getElementById('{{ form.is_recurring.id_for_label }}');
+  const recurrenceField = document.getElementById('recurrence-note-field');
+
+  function toggleRecurrence() {
+    recurrenceField.style.display = recurringChk.checked ? 'flex' : 'none';
+  }
+
+  recurringChk.addEventListener('change', toggleRecurrence);
+  toggleRecurrence(); // run on load
+
+  // Show filename when file selected
+  const fileInput = document.getElementById('id_receipt_image');
+  fileInput.addEventListener('change', function () {
+    const area = this.closest('.upload-area');
+    const textEl = area.querySelector('.upload-text');
+    if (this.files && this.files[0]) {
+      textEl.textContent = this.files[0].name;
+    }
+  });
+</script>
+{% endblock %}

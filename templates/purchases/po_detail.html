@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}{{ po.po_number }} - Ericus POS{% endblock %}
+{% block page_title %}Purchase Order Detail{% endblock %}
+{% block nav_purchasesmgmt %}active{% endblock %}
+
+{% block topbar_actions %}
+{% if po.status == 'draft' %}
+<a href="{% url 'purchases:po_edit' po.pk %}" class="btn btn-primary btn-sm">Edit PO</a>
+<form method="post" action="{% url 'purchases:po_mark_ordered' po.pk %}" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark this PO as Ordered? This cannot be undone.')">Mark as Ordered</button>
+</form>
+<form method="post" action="{% url 'purchases:po_cancel' po.pk %}" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this purchase order?')">Cancel PO</button>
+</form>
+{% endif %}
+{% if po.status == 'ordered' or po.status == 'partial' %}
+<a href="{% url 'purchases:grn_create' po.pk %}" class="btn btn-success btn-sm">Receive Stock</a>
+<form method="post" action="{% url 'purchases:po_cancel' po.pk %}" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this purchase order?')">Cancel PO</button>
+</form>
+{% endif %}
+<a href="{% url 'purchases:po_list' %}" class="btn btn-outline btn-sm">&#8592; Back</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- PO Header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="grid-2" style="gap:24px;">
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;margin-bottom:3px;">PO Number</div>
+        <div style="font-size:20px;font-weight:bold;font-family:'Times New Roman',serif;color:var(--text);">{{ po.po_number }}</div>
+        <div style="margin-top:10px;">
+          {% if po.status == 'draft' %}<span class="badge badge-secondary">Draft</span>
+          {% elif po.status == 'ordered' %}<span class="badge badge-primary">Ordered</span>
+          {% elif po.status == 'partial' %}<span class="badge badge-warning">Partially Received</span>
+          {% elif po.status == 'received' %}<span class="badge badge-success">Fully Received</span>
+          {% elif po.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
+          {% endif %}
+          {% if po.is_fully_paid %}<span class="badge badge-success" style="margin-left:6px;">Fully Paid</span>
+          {% elif po.amount_due > 0 %}<span class="badge badge-danger" style="margin-left:6px;">Payment Due</span>{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="grid-2" style="gap:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Supplier</div>
+            <div style="font-weight:bold;font-family:'Times New Roman',serif;">{{ po.supplier.name }}</div>
+            <div style="font-size:12px;color:var(--text3);">{{ po.supplier.phone|default:"" }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Order Date</div>
+            <div style="font-family:'Times New Roman',serif;">{{ po.order_date|date:"d M Y" }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Expected Delivery</div>
+            <div style="font-family:'Times New Roman',serif;">{{ po.expected_date|date:"d M Y"|default:"Not set" }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Created By</div>
+            <div style="font-family:'Times New Roman',serif;">{{ po.created_by.get_full_name|default:po.created_by.username }}</div>
+          </div>
+          {% if po.approved_by %}
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Approved By</div>
+            <div style="font-family:'Times New Roman',serif;">{{ po.approved_by.get_full_name|default:po.approved_by.username }}</div>
+            <div style="font-size:11px;color:var(--text3);">{{ po.approved_at|date:"d M Y H:i" }}</div>
+          </div>
+          {% endif %}
+          {% if po.received_date %}
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Received Date</div>
+            <div style="font-family:'Times New Roman',serif;">{{ po.received_date|date:"d M Y" }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% if po.notes %}
+    <hr class="divider">
+    <div style="font-size:12px;color:var(--text3);font-family:'Times New Roman',serif;"><strong>Notes:</strong> {{ po.notes }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Totals Row -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Subtotal</div>
+    <div class="s-value">GHS {{ po.subtotal }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Discount</div>
+    <div class="s-value">GHS {{ po.discount_amount }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Tax</div>
+    <div class="s-value">GHS {{ po.tax_amount }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Shipping</div>
+    <div class="s-value">GHS {{ po.shipping_cost }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Grand Total</div>
+    <div class="s-value" style="color:#4a6cf7;">GHS {{ po.grand_total }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Amount Paid</div>
+    <div class="s-value" style="color:#28a745;">GHS {{ po.amount_paid }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Amount Due</div>
+    <div class="s-value" style="color:{% if po.amount_due > 0 %}#dc3545{% else %}#28a745{% endif %};">GHS {{ po.amount_due }}</div>
+  </div>
+</div>
+
+<!-- Items Table -->
+<div class="card mb-3">
+  <div class="card-head">
+    <h3>Order Items</h3>
+    <span class="text-muted text-sm">{{ po.total_items }} product(s) — {{ po.total_units_ordered }} units ordered, {{ po.total_units_received }} received</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Qty Ordered</th>
+          <th>Qty Received</th>
+          <th>Qty Pending</th>
+          <th>Unit Cost</th>
+          <th>Line Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td>
+            <div style="font-weight:bold;">{{ item.product.name }}</div>
+            <div style="font-size:11px;color:var(--text3);">
+              {% if item.product.brand %}{{ item.product.brand }}{% endif %}
+              {% if item.product.sku %} · {{ item.product.sku }}{% endif %}
+            </div>
+          </td>
+          <td class="text-sm">{{ item.product.category.name }}</td>
+          <td class="text-sm">{{ item.quantity_ordered }}</td>
+          <td class="text-sm" style="color:#28a745;">{{ item.quantity_received }}</td>
+          <td class="text-sm" style="{% if item.quantity_pending > 0 %}color:#dc3545;font-weight:bold;{% endif %}">{{ item.quantity_pending }}</td>
+          <td class="text-sm">GHS {{ item.unit_cost }}</td>
+          <td class="text-sm"><strong>GHS {{ item.line_total }}</strong></td>
+          <td>
+            {% if item.is_fully_received %}
+            <span class="badge badge-success">Complete</span>
+            {% elif item.quantity_received > 0 %}
+            <span class="badge badge-warning">Partial</span>
+            {% else %}
+            <span class="badge badge-secondary">Pending</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">No items on this order.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Payment Info -->
+<div class="grid-2" style="gap:16px;align-items:start;margin-bottom:16px;">
+  <div class="card">
+    <div class="card-head">
+      <h3>Payment</h3>
+      {% if not po.is_fully_paid and po.status != 'cancelled' %}
+      <a href="{% url 'purchases:payment_update' po.pk %}" class="btn btn-sm btn-primary">Record Payment</a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="grid-2" style="gap:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Method</div>
+          <div style="font-family:'Times New Roman',serif;">{{ po.get_payment_method_display|default:"Not set" }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Reference</div>
+          <div style="font-family:'Times New Roman',serif;">{{ po.payment_reference|default:"—" }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Amount Paid</div>
+          <div style="font-size:18px;font-weight:bold;color:#28a745;font-family:'Times New Roman',serif;">GHS {{ po.amount_paid }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Amount Due</div>
+          <div style="font-size:18px;font-weight:bold;color:{% if po.amount_due > 0 %}#dc3545{% else %}#28a745{% endif %};font-family:'Times New Roman',serif;">GHS {{ po.amount_due }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRN History -->
+  <div class="card">
+    <div class="card-head">
+      <h3>Goods Received Notes (GRNs)</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>GRN Number</th>
+            <th>Date</th>
+            <th>Units</th>
+            <th>Received By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for grn in grns %}
+          <tr>
+            <td style="font-weight:bold;">{{ grn.grn_number }}</td>
+            <td class="text-sm">{{ grn.received_date|date:"d M Y" }}</td>
+            <td class="text-sm">{{ grn.total_units_received }}</td>
+            <td class="text-sm">{{ grn.received_by.get_full_name|default:grn.received_by.username }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No deliveries recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

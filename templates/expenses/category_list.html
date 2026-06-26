@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Categories — GatPOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --sidebar-bg:   #1a1a2e;
+    --accent:       #17a589;
+    --accent-hover: #148f77;
+    --danger:       #e74c3c;
+    --light-bg:     #f4f6f8;
+    --card-bg:      #ffffff;
+    --border:       #dde1e7;
+    --text-main:    #1a1a2e;
+    --text-muted:   #6b7280;
+    --font:         'Times New Roman', Times, serif;
+    --radius:       6px;
+    --shadow:       0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--light-bg); color: var(--text-main); font-size: 14px; }
+
+  .page-content { padding: 24px 28px; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-header h1 { font-size: 20px; font-weight: 700; }
+  .page-header .breadcrumb { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .18s, transform .12s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #c0392b; color:#fff; }
+
+  .table-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-card-header h2 { font-size: 15px; font-weight: 700; }
+
+  .table-responsive { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  thead tr { background: var(--light-bg); }
+  thead th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .13s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f0faf8; }
+  tbody td { padding: 12px 14px; vertical-align: middle; }
+
+  .icon-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #e8f8f5;
+    color: var(--accent);
+    font-size: 15px;
+  }
+
+  .badge-active   { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; background:#e8f8f5; color:#148f77; border:1px solid #a9dfbf; }
+  .badge-inactive { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; background:#f2f3f4; color:#6b7280; border:1px solid #d5d8dc; }
+
+  .action-group { display:flex; gap:5px; flex-wrap:wrap; }
+
+  .empty-state { padding:50px 20px; text-align:center; color:var(--text-muted); }
+  .empty-state p { font-size:14px; margin-top:8px; }
+
+  .alert { padding:11px 16px; border-radius:var(--radius); font-size:13px; margin-bottom:16px; border-left:4px solid transparent; }
+  .alert-success { background:#e8f8f5; border-color:var(--accent); color:#1e8449; }
+  .alert-error   { background:#fdedec; border-color:var(--danger); color:#922b21; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  <div class="page-header">
+    <div>
+      <h1>Expense Categories</h1>
+      <div class="breadcrumb">Dashboard / Expenses / Categories</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="{% url 'expenses:list' %}" class="btn btn-outline btn-sm">Back to Expenses</a>
+      <a href="{% url 'expenses:category_create' %}" class="btn btn-primary btn-sm">+ New Category</a>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2>All Categories</h2>
+      <span style="font-size:12px; color:var(--text-muted);">{{ categories.count }} total</span>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Icon</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in categories %}
+          <tr>
+            <td style="color:var(--text-muted); font-size:12px;">{{ forloop.counter }}</td>
+            <td>
+              <span class="icon-cell">
+                <i class="fas {{ cat.icon }}"></i>
+              </span>
+            </td>
+            <td style="font-weight:600;">{{ cat.name }}</td>
+            <td style="color:var(--text-muted); max-width:300px;">
+              {{ cat.description|default:"—" }}
+            </td>
+            <td>
+              {% if cat.is_active %}
+                <span class="badge-active">Active</span>
+              {% else %}
+                <span class="badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-group">
+                <a href="{% url 'expenses:category_edit' cat.pk %}" class="btn btn-outline btn-sm">Edit</a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <strong>No categories found.</strong>
+                <p>Create your first expense category to get started.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

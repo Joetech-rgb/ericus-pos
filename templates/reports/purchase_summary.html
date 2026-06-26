@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Purchase Summary - Ericus POS{% endblock %}
+{% block page_title %}Purchase Summary{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Purchase Summary</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+  </div>
+</form>
+
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Total Orders</div>
+    <div class="s-value">{{ data.total_orders }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Value</div>
+    <div class="s-value">GHS {{ data.total_value }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Amount Paid</div>
+    <div class="s-value" style="color:#28a745;">GHS {{ data.total_paid }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Outstanding</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ data.total_outstanding }}</div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;">
+
+  <!-- By Supplier -->
+  <div class="card">
+    <div class="card-head">
+      <h3>By Supplier</h3>
+      <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Supplier</th>
+            <th class="text-right">Orders</th>
+            <th class="text-right">Total Value (GHS)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.by_supplier %}
+          <tr>
+            <td style="font-weight:bold;">{{ row.supplier__name|default:"Unknown" }}</td>
+            <td class="text-right">{{ row.order_count }}</td>
+            <td class="text-right">{{ row.total_value }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- By Status -->
+  <div class="card">
+    <div class="card-head"><h3>By Status</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th class="text-right">Count</th>
+            <th class="text-right">Total (GHS)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.by_status %}
+          <tr>
+            <td>
+              {% if row.status == 'received' %}<span class="badge badge-success">Received</span>
+              {% elif row.status == 'pending' %}<span class="badge badge-warning">Pending</span>
+              {% elif row.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
+              {% else %}<span class="badge badge-secondary">{{ row.status|title }}</span>{% endif %}
+            </td>
+            <td class="text-right">{{ row.count }}</td>
+            <td class="text-right">{{ row.total }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

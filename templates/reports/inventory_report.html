@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Inventory Report - Ericus POS{% endblock %}
+{% block page_title %}Inventory Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Inventory Report <span class="text-muted text-sm" style="font-weight:normal;">(Movement & Valuation)</span></h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'reports:inventory_status' %}" class="btn btn-outline btn-sm">Current Status Instead</a>
+    <span class="badge badge-warning">Coming Soon</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">End Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Movement Type</label>
+        <select name="movement" class="form-control" style="width:180px;">
+          <option value="">All Movements</option>
+          <option value="in">Stock In (Purchases)</option>
+          <option value="out">Stock Out (Sales)</option>
+          <option value="adjustment">Adjustments</option>
+          <option value="return">Returns</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #28a745;">
+    <div class="s-label">Total Stock Value</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #4a6cf7;">
+    <div class="s-label">Stock In (Period)</div>
+    <div class="s-value" style="color:var(--text3);">— units</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #dc3545;">
+    <div class="s-label">Stock Out (Period)</div>
+    <div class="s-value" style="color:var(--text3);">— units</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #ffc107;">
+    <div class="s-label">Low Stock Items</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #dc3545;">
+    <div class="s-label">Out of Stock</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+</div>
+
+<!-- Valuation table -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>Stock Valuation by Product</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Opening Stock</th>
+          <th>Stock In</th>
+          <th>Stock Out</th>
+          <th>Adjustments</th>
+          <th>Closing Stock</th>
+          <th>Unit Cost (GH₵)</th>
+          <th class="text-right">Stock Value (GH₵)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">No data — view not yet active</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Movement log -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>Stock Movement Log</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date &amp; Time</th>
+          <th>Product</th>
+          <th>Type</th>
+          <th>Qty Change</th>
+          <th>Stock After</th>
+          <th>Reference</th>
+          <th>Recorded By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">No data — view not yet active</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      Different from <code>inventory_status</code> (which shows current stock levels).
+      This report shows <em>movement over time</em> — stock-in from purchases, stock-out from sales, adjustments.
+      Requires a <code>StockMovement</code> model or derivation from <code>PurchaseItem</code> + <code>SaleItem</code>.
+      Wire as <code>path('inventory/report/', views.inventory_report, name='inventory_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

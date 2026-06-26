@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ sale.receipt_number }} - Ericus POS{% endblock %}
+{% block page_title %}Receipt{% endblock %}
+{% block nav_pos %}active{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-primary btn-sm">Print Receipt</button>
+<a href="{% url 'sales:receipt_pdf' sale.pk %}" class="btn btn-outline btn-sm">Download PDF</a>
+<a href="{% url 'sales:thermal_receipt' sale.pk %}" class="btn btn-outline btn-sm" target="_blank">Thermal Print</a>
+<a href="{% url 'sales:pos' %}" class="btn btn-success btn-sm">New Sale</a>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .sidebar, .topbar, .topbar-actions, .btn, .page-header { display: none !important; }
+    .main-wrap { margin-left: 0 !important; }
+    .receipt-wrap { max-width: 100% !important; box-shadow: none !important; border: none !important; }
+    body { background: #fff !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="receipt-wrap" style="max-width:520px;margin:0 auto;">
+
+  <!-- Success Banner -->
+  <div style="background:#d4edda;border:1px solid #28a745;border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;text-align:center;">
+    <div style="font-size:16px;font-weight:bold;font-family:'Times New Roman',serif;color:#155724;">Sale Completed Successfully</div>
+    <div style="font-size:13px;color:#155724;font-family:'Times New Roman',serif;margin-top:4px;">{{ sale.receipt_number }}</div>
+  </div>
+
+  <!-- Receipt Card -->
+  <div class="card">
+    <div class="card-body">
+
+      <!-- Shop Header -->
+      <div style="text-align:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+        <div style="font-size:18px;font-weight:bold;font-family:'Times New Roman',serif;color:var(--text);">
+          {% if request.user.shop %}{{ request.user.shop.name }}{% else %}Ericus Electrical & Home Appliances{% endif %}
+        </div>
+        {% if request.user.shop.address %}
+        <div style="font-size:12px;color:var(--text3);font-family:'Times New Roman',serif;margin-top:3px;">{{ request.user.shop.address }}</div>
+        {% endif %}
+        {% if request.user.shop.phone %}
+        <div style="font-size:12px;color:var(--text3);font-family:'Times New Roman',serif;">Tel: {{ request.user.shop.phone }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Receipt Meta -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:12px;font-family:'Times New Roman',serif;">
+        <div><span style="color:var(--text3);">Receipt No:</span><br><strong>{{ sale.receipt_number }}</strong></div>
+        <div><span style="color:var(--text3);">Date:</span><br><strong>{{ sale.created_at|date:"d M Y H:i" }}</strong></div>
+        <div><span style="color:var(--text3);">Customer:</span><br><strong>{{ sale.customer_name|default:"Walk-in Customer" }}</strong></div>
+        <div><span style="color:var(--text3);">Attendant:</span><br><strong>{{ sale.attendant_username }}</strong></div>
+      </div>
+
+      <hr style="border:none;border-top:1px dashed var(--border);margin:10px 0;">
+
+      <!-- Items -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;font-size:11px;font-family:'Times New Roman',serif;color:var(--text3);padding:4px 0;">Item</th>
+            <th style="text-align:center;font-size:11px;font-family:'Times New Roman',serif;color:var(--text3);padding:4px 0;">Qty</th>
+            <th style="text-align:right;font-size:11px;font-family:'Times New Roman',serif;color:var(--text3);padding:4px 0;">Price</th>
+            <th style="text-align:right;font-size:11px;font-family:'Times New Roman',serif;color:var(--text3);padding:4px 0;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-size:12px;font-family:'Times New Roman',serif;color:var(--text);">
+              {{ item.product_name }}
+              {% if item.serial_number %}
+              <div style="font-size:10px;color:var(--text3);">S/N: {{ item.serial_number }}</div>
+              {% endif %}
+            </td>
+            <td style="text-align:center;font-size:12px;font-family:'Times New Roman',serif;padding:7px 4px;">{{ item.quantity }}</td>
+            <td style="text-align:right;font-size:12px;font-family:'Times New Roman',serif;padding:7px 0;">{{ item.unit_price }}</td>
+            <td style="text-align:right;font-size:12px;font-family:'Times New Roman',serif;font-weight:bold;padding:7px 0;">{{ item.subtotal }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div style="border-top:1px dashed var(--border);padding-top:10px;">
+        {% if sale.discount_amount > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-family:'Times New Roman',serif;padding:2px 0;color:var(--text2);">
+          <span>Subtotal</span><span>GHS {{ sale.subtotal }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-family:'Times New Roman',serif;padding:2px 0;color:#28a745;">
+          <span>Discount ({{ sale.discount_code_used }})</span><span>- GHS {{ sale.discount_amount }}</span>
+        </div>
+        {% endif %}
+        {% if sale.installation_fee > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-family:'Times New Roman',serif;padding:2px 0;color:var(--text2);">
+          <span>Installation Fee</span><span>GHS {{ sale.installation_fee }}</span>
+        </div>
+        {% endif %}
+        {% if sale.delivery_fee > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-family:'Times New Roman',serif;padding:2px 0;color:var(--text2);">
+          <span>Delivery Fee</span><span>GHS {{ sale.delivery_fee }}</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;font-family:'Times New Roman',serif;padding:8px 0;border-top:2px solid var(--border);margin-top:4px;">
+          <span>TOTAL</span><span style="color:#4a6cf7;">GHS {{ sale.total }}</span>
+        </div>
+      </div>
+
+      <!-- Payment Details -->
+      <div style="background:var(--page-bg);border-radius:var(--radius);padding:10px 14px;margin-top:10px;">
+        {% for payment in payments %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-family:'Times New Roman',serif;padding:2px 0;">
+          <span style="color:var(--text2);">{{ payment.get_method_display }}</span>
+          <span><strong>GHS {{ payment.amount }}</strong></span>
+        </div>
+        {% if payment.momo_reference %}
+        <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Ref: {{ payment.momo_reference }}</div>
+        {% endif %}
+        {% endfor %}
+        {% if sale.change_given > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-family:'Times New Roman',serif;padding:4px 0;border-top:1px solid var(--border);margin-top:6px;">
+          <span style="color:var(--text2);">Change Given</span>
+          <span><strong>GHS {{ sale.change_given }}</strong></span>
+        </div>
+        {% endif %}
+        {% if sale.is_credit %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-family:'Times New Roman',serif;padding:4px 0;border-top:1px solid var(--border);margin-top:6px;color:#dc3545;">
+          <span>Balance Due</span>
+          <span><strong>GHS {{ sale.balance_due }}</strong></span>
+        </div>
+        {% if sale.credit_due_date %}
+        <div style="font-size:11px;color:#dc3545;font-family:'Times New Roman',serif;">Due by: {{ sale.credit_due_date|date:"d M Y" }}</div>
+        {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Warranty Notice -->
+      {% for item in items %}
+        {% if item.product.warranty_months > 0 %}
+        <div style="margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:11px;font-family:'Times New Roman',serif;color:var(--text2);">
+          <strong>Warranty:</strong> {{ item.product_name }} — {{ item.product.warranty_display }}
+          {% if item.serial_number %} | S/N: {{ item.serial_number }}{% endif %}
+          | From: {{ sale.created_at|date:"d M Y" }}
+          <a href="{% url 'sales:warranty_card' item.pk %}" style="color:#4a6cf7;margin-left:8px;">Download Warranty Card</a>
+        </div>
+        {% endif %}
+      {% endfor %}
+
+      <!-- Footer -->
+      <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed var(--border);">
+        <div style="font-size:12px;font-family:'Times New Roman',serif;color:var(--text3);">
+          {% if request.user.shop.receipt_footer %}
+            {{ request.user.shop.receipt_footer }}
+          {% else %}
+            Thank you for shopping with us. All sales are final unless faulty.
+          {% endif %}
+        </div>
+        <div style="font-size:11px;font-family:'Times New Roman',serif;color:var(--text3);margin-top:4px;">Powered by GatPOS</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+    <a href="{% url 'sales:pos' %}" class="btn btn-success" style="flex:1;text-align:center;">New Sale</a>
+    <button onclick="window.print()" class="btn btn-primary" style="flex:1;">Print Receipt</button>
+    <a href="{% url 'sales:sale_detail' sale.pk %}" class="btn btn-outline" style="flex:1;text-align:center;">Full Detail</a>
+  </div>
+
+</div>
+
+{% endblock %}

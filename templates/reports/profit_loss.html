@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Profit & Loss - Ericus POS{% endblock %}
+{% block page_title %}Profit &amp; Loss{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf" class="btn btn-sm btn-outline">↓ PDF</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Profit &amp; Loss Statement</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+    <div style="margin-top:16px;"><a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf" class="btn btn-outline">↓ PDF</a></div>
+  </div>
+</form>
+
+<!-- Summary stats -->
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Gross Revenue</div>
+    <div class="s-value">GHS {{ data.revenue }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Gross Profit</div>
+    <div class="s-value">GHS {{ data.gross_profit }}</div>
+    <div class="s-sub">Margin: {{ data.gross_margin_pct }}%</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Operating Expenses</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ data.operating_expenses }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Net Profit</div>
+    <div class="s-value" style="color:{% if data.net_profit > 0 %}#28a745{% else %}#dc3545{% endif %};">GHS {{ data.net_profit }}</div>
+    <div class="s-sub">Margin: {{ data.net_margin_pct }}%</div>
+  </div>
+</div>
+
+<!-- Detailed P&L Statement -->
+<div class="card" style="max-width:680px;">
+  <div class="card-head">
+    <h3>Statement of Profit &amp; Loss</h3>
+    <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table style="width:100%;border-collapse:collapse;">
+      <tbody>
+        <!-- Revenue section -->
+        <tr style="background:var(--page-bg);">
+          <td colspan="2" style="padding:10px 18px;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);font-family:'Times New Roman',serif;">Revenue</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 18px 9px 28px;font-size:13px;color:var(--text2);font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">Gross Revenue</td>
+          <td style="padding:9px 18px;font-size:13px;text-align:right;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">GHS {{ data.revenue }}</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 18px 9px 28px;font-size:13px;color:var(--text2);font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">Less: Discounts</td>
+          <td style="padding:9px 18px;font-size:13px;text-align:right;color:#dc3545;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">(GHS {{ data.discounts_given }})</td>
+        </tr>
+        <tr style="background:var(--page-bg);">
+          <td style="padding:10px 18px;font-size:13px;font-weight:bold;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">Net Revenue</td>
+          <td style="padding:10px 18px;font-size:13px;font-weight:bold;text-align:right;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">GHS {{ data.net_revenue }}</td>
+        </tr>
+
+        <!-- COGS section -->
+        <tr style="background:var(--page-bg);">
+          <td colspan="2" style="padding:10px 18px;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);font-family:'Times New Roman',serif;">Cost of Goods</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 18px 9px 28px;font-size:13px;color:var(--text2);font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">Cost of Goods Sold (COGS)</td>
+          <td style="padding:9px 18px;font-size:13px;text-align:right;color:#dc3545;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">(GHS {{ data.cogs }})</td>
+        </tr>
+        <tr style="background:var(--page-bg);">
+          <td style="padding:10px 18px;font-size:13px;font-weight:bold;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">Gross Profit <span style="font-size:11px;color:var(--text3);font-weight:normal;">({{ data.gross_margin_pct }}% margin)</span></td>
+          <td style="padding:10px 18px;font-size:13px;font-weight:bold;text-align:right;color:#28a745;font-family:'Times New Roman',serif;border-bottom:1px solid var(--border);">GHS {{ data.gross_profit }}</td>
+        </tr>
+
+        <!-- Expenses section -->
+        <tr style="background:var(--page-bg);">
+          <td colspan="2" style="padding:10px 18px;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);font-family:'Times New Roman',serif;">Operating Expenses</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 18px 9px 28px;font-size:13px;color:var(--text2);font-family:'Times New Roman',serif;border-bottom:2px solid var(--border);">Total Operating Expenses</td>
+          <td style="padding:9px 18px;font-size:13px;text-align:right;color:#dc3545;font-family:'Times New Roman',serif;border-bottom:2px solid var(--border);">(GHS {{ data.operating_expenses }})</td>
+        </tr>
+
+        <!-- Net Profit -->
+        <tr style="background:{% if data.net_profit > 0 %}rgba(40,167,69,0.06){% else %}rgba(220,53,69,0.06){% endif %};">
+          <td style="padding:14px 18px;font-size:15px;font-weight:bold;font-family:'Times New Roman',serif;">Net Profit <span style="font-size:12px;font-weight:normal;color:var(--text3);">({{ data.net_margin_pct }}% margin)</span></td>
+          <td style="padding:14px 18px;font-size:15px;font-weight:bold;text-align:right;color:{% if data.net_profit > 0 %}#28a745{% else %}#dc3545{% endif %};font-family:'Times New Roman',serif;">GHS {{ data.net_profit }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

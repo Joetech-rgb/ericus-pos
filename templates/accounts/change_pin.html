@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Change PIN - Ericus POS{% endblock %}
+{% block page_title %}Change PIN{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Core Security Workspace Constraints */
+  .security-card-wrap {
+    max-width: 440px;
+    margin: 0 auto;
+  }
+  
+  /* Styled Form Input Modifiers to override generic textfields if necessary */
+  .security-card-wrap input[type="password"],
+  .security-card-wrap input[type="text"],
+  .security-card-wrap input[type="number"] {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Times New Roman', serif;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--page-bg);
+    color: var(--text);
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .security-card-wrap input:focus {
+    border-color: #4a6cf7;
+    background: var(--card-bg);
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+  }
+
+  /* Explicit validation layouts */
+  .field-error-msg {
+    color: #dc3545;
+    font-size: 12px;
+    font-family: 'Times New Roman', serif;
+    margin-top: 5px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 24px; text-align: center;">
+  <h1 style="font-family: 'Times New Roman', serif; font-size: 24px; font-weight: bold;">Change Authorization PIN</h1>
+</div>
+
+<div class="security-card-wrap">
+  <div class="card" style="box-shadow: var(--shadow); border-radius: calc(var(--radius) * 1.5);">
+    <div class="card-head" style="border-bottom: 1px solid var(--border); padding: 18px 24px;">
+      <h3 style="font-size: 16px; font-family: 'Times New Roman', serif; font-weight: bold; color: var(--text);">Update Security PIN</h3>
+    </div>
+    <div class="card-body" style="padding: 24px;">
+      
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+        
+        <!-- Global Form-Level Error Feedback Banner -->
+        {% if form.non_field_errors %}
+        <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: var(--radius); padding: 12px; margin-bottom: 20px; font-size: 13px; color: #721c24; font-family: 'Times New Roman', serif; font-weight: bold;">
+          {% for error in form.non_field_errors %}
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>⚠️</span> {{ error }}
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Dynamic Form Fields Compiler -->
+        {% for field in form %}
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-size: 11px; color: var(--text3); font-family: 'Times New Roman', serif; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: bold; display: block;">
+            {{ field.label }}
+          </label>
+          
+          <!-- Render native form widget context -->
+          <div class="form-field-wrapper">
+            {{ field }}
+          </div>
+
+          {% if field.help_text %}
+          <small style="display: block; font-size: 11px; color: var(--text3); font-family: 'Times New Roman', serif; margin-top: 4px; line-height: 1.4;">
+            {{ field.help_text|safe }}
+          </small>
+          {% endif %}
+          
+          {% if field.errors %}
+          <div class="field-error-msg">
+            <span>•</span> {{ field.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Interface Submit Operations Block -->
+        <div style="display: flex; gap: 12px; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 20px;">
+          <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 13px; font-weight: bold; flex: 1; justify-content: center;">
+            Update Token PIN
+          </button>
+          <a href="{% url 'profile' %}" class="btn btn-outline" style="padding: 10px 20px; font-size: 13px; justify-content: center;">
+            Cancel
+          </a>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

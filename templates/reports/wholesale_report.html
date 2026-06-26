@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Wholesale Report - Ericus POS{% endblock %}
+{% block page_title %}Wholesale Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Wholesale Report</h1>
+  <span class="badge badge-warning">Coming Soon</span>
+</div>
+
+<!-- Date filter -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">End Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Customer</label>
+        <input type="text" name="customer" placeholder="Search wholesale customer…" class="form-control" style="width:220px;">
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;border-top:3px solid #4a6cf7;">
+    <div class="s-label">Wholesale Revenue</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Wholesale Transactions</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Wholesale Customers</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Avg. Order Value</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Outstanding Credit</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;margin-bottom:16px;">
+
+  <!-- Top wholesale customers -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Top Wholesale Customers</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Orders</th>
+            <th>Total Spent (GH₵)</th>
+            <th>Outstanding (GH₵)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top wholesale products -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Top Products (Wholesale)</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Units Sold</th>
+            <th>Revenue (GH₵)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Wholesale transaction log -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>All Wholesale Transactions</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Receipt #</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Payment Method</th>
+          <th>Amount (GH₵)</th>
+          <th>Credit Used (GH₵)</th>
+          <th>Balance After (GH₵)</th>
+          <th>Attendant</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">No data — view not yet active</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      Add a <code>wholesale_report</code> view that filters <code>Sale</code> objects where
+      <code>customer__customer_type='wholesale'</code> (or however your model distinguishes wholesale).
+      Annotate with totals and join customer credit balances. Wire as
+      <code>path('wholesale/', views.wholesale_report, name='wholesale_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

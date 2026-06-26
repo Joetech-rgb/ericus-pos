@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Profile - Ericus POS{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Profile Layout & Typography */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  
+  /* Modern Info Grid for Read-Only Fields */
+  .info-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  @media(max-width: 768px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+    .info-matrix {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Refined Meta Details */
+  .meta-label {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  
+  .meta-value {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Times New Roman', serif;
+    background: var(--page-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Micro List Styles */
+  .activity-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .activity-table td {
+    padding: 14px 20px;
+    font-size: 13px;
+    font-family: 'Times New Roman', serif;
+    border-bottom: 1px solid var(--border);
+  }
+  .activity-table tr:last-child td {
+    border-bottom: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 24px;">
+  <h1 style="font-family: 'Times New Roman', serif; font-size: 24px; font-weight: bold;">Profile &amp; Settings</h1>
+</div>
+
+<div class="profile-grid">
+
+  <!-- LEFT COLUMN: Account Information -->
+  <div class="card" style="box-shadow: var(--shadow); border-radius: calc(var(--radius) * 1.5);">
+    <div class="card-head" style="border-bottom: 1px solid var(--border); padding: 18px 24px;">
+      <h3 style="font-size: 16px; font-family: 'Times New Roman', serif; font-weight: bold; color: var(--text);">Account Information</h3>
+    </div>
+    <div class="card-body" style="padding: 24px;">
+      
+      <!-- User Hero Header -->
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px dashed var(--border);">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #4a6cf7; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; color: #fff; font-family: 'Times New Roman', serif; box-shadow: 0 4px 12px rgba(74, 108, 247, 0.2);">
+          {{ user.username|first|upper }}
+        </div>
+        <div>
+          <div style="font-size: 18px; font-weight: bold; color: var(--text); font-family: 'Times New Roman', serif; margin-bottom: 2px;">
+            {{ user.full_name|default:user.username }}
+          </div>
+          <span class="badge {% if user.is_superuser %}badge-success{% else %}badge-primary{% endif %}" style="font-size: 11px; text-transform: uppercase; font-family: 'Times New Roman', serif;">
+            {% if user.is_superuser %}Super Admin{% elif user.role %}{{ user.get_role_display }}{% else %}Staff{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- Identity Grid Matrix -->
+      <div class="info-matrix">
+        <div>
+          <div class="meta-label">Username</div>
+          <div class="meta-value">{{ user.username }}</div>
+        </div>
+        <div>
+          <div class="meta-label">Full Name</div>
+          <div class="meta-value">{{ user.full_name|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="meta-label">Phone Reference</div>
+          <div class="meta-value">{{ user.phone|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="meta-label">Allocated Shop Node</div>
+          <div class="meta-value">{{ user.shop.name|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="meta-label">System Registration Date</div>
+          <div class="meta-value">{{ user.date_joined|date:"d M Y" }}</div>
+        </div>
+        <div>
+          <div class="meta-label">Last Terminal Login</div>
+          <div class="meta-value">{{ user.last_login|date:"d M Y H:i"|default:"—" }}</div>
+        </div>
+      </div>
+
+      <!-- Operational Management Tools -->
+      <div style="display: flex; gap: 12px; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 20px;">
+        <a href="#" class="btn btn-primary" style="padding: 10px 20px; font-size: 13px;">Edit Profile Details</a>
+        <a href="#" class="btn btn-outline" style="padding: 10px 20px; font-size: 13px;">Change Security Password</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: System Preferences & Operations -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- PIN access terminal authorization -->
+    <div class="card" style="box-shadow: var(--shadow); border-radius: calc(var(--radius) * 1.5);">
+      <div class="card-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px;">
+        <h3 style="font-size: 15px; font-family: 'Times New Roman', serif; font-weight: bold; color: var(--text);">PIN &amp; Security Authentication</h3>
+      </div>
+      <div class="card-body" style="padding: 20px;">
+        <p style="font-size: 13px; font-family: 'Times New Roman', serif; color: var(--text2); margin-bottom: 16px; line-height: 1.5;">
+          Your cryptographic short-form PIN is deployed during rapid token access authentication calls within active POS layout modules.
+        </p>
+        <a href="{% url 'change_pin' %}" class="btn btn-outline" style="padding: 8px 16px; font-size: 12px;">Configure Quick-Access PIN</a>
+      </div>
+    </div>
+
+    <!-- Interface Display Settings -->
+    <div class="card" style="box-shadow: var(--shadow); border-radius: calc(var(--radius) * 1.5);">
+      <div class="card-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px;">
+        <h3 style="font-size: 15px; font-family: 'Times New Roman', serif; font-weight: bold; color: var(--text);">Display Preferences</h3>
+      </div>
+      <div class="card-body" style="padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div>
+            <div style="font-size: 13px; font-weight: bold; color: var(--text); font-family: 'Times New Roman', serif; margin-bottom: 2px;">Dark Mode Environment Toggle</div>
+            <div style="font-size: 12px; color: var(--text3); font-family: 'Times New Roman', serif;">Hot-swap active dashboard theme configurations between system styles.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="toggleDark()" style="padding: 6px 14px; font-size: 12px; font-weight: bold; white-space: nowrap;">Toggle Theme</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historical Metric Aggregations -->
+    {% if user == request.user %}
+    <div class="card" style="box-shadow: var(--shadow); border-radius: calc(var(--radius) * 1.5); overflow: hidden;">
+      <div class="card-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px;">
+        <h3 style="font-size: 15px; font-family: 'Times New Roman', serif; font-weight: bold; color: var(--text);">Account Activity Matrix</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <table class="activity-table">
+          <tbody>
+            <tr>
+              <td style="color: var(--text2);">Total Ledger Sales Logged</td>
+              <td style="font-weight: bold; color: #4a6cf7; text-align: right; font-size: 15px;">{{ user.sales.count }}</td>
+            </tr>
+            <tr>
+              <td style="color: var(--text2);">Managed Catalog Items Created</td>
+              <td style="font-weight: bold; color: var(--text); text-align: right; font-size: 15px;">{{ user.products_created.count }}</td>
+            </tr>
+            <tr>
+              <td style="color: var(--text2);">Client Profile Registry Signatures</td>
+              <td style="font-weight: bold; color: var(--text); text-align: right; font-size: 15px;">{{ user.customers_created.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+﻿{% extends "base.html" %}
+{% block title %}Users - Ericus POS{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>System Users</h1>
+  <a href="{% url 'user_create' %}" class="btn btn-primary">+ Add Attendant</a>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Name</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Username</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Role</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Phone</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Status</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3);">Joined</th>
+          <th style="padding:12px 16px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#4a6cf7;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;">
+                {{ u.full_name|first|upper }}
+              </div>
+              <span style="font-weight:bold;color:var(--text);">{{ u.full_name }}</span>
+            </div>
+          </td>
+          <td style="padding:12px 16px;color:var(--text2);">{{ u.username }}</td>
+          <td style="padding:12px 16px;">
+            <span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:bold;background:{% if u.is_owner %}#d1ecf1{% else %}#e2e3e5{% endif %};color:{% if u.is_owner %}#0c5460{% else %}#383d41{% endif %};">
+              {{ u.get_role_display }}
+            </span>
+          </td>
+          <td style="padding:12px 16px;color:var(--text2);">{{ u.phone|default:"—" }}</td>
+          <td style="padding:12px 16px;">
+            <span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:bold;background:{% if u.is_active %}#d4edda{% else %}#f8d7da{% endif %};color:{% if u.is_active %}#155724{% else %}#721c24{% endif %};">
+              {% if u.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td style="padding:12px 16px;color:var(--text3);font-size:12px;">{{ u.date_joined|date:"d M Y" }}</td>
+          <td style="padding:12px 16px;">
+            <div style="display:flex;gap:6px;justify-content:flex-end;">
+              <a href="{% url 'user_edit' u.id %}" class="btn btn-outline btn-sm">Edit</a>
+              {% if not u.is_owner %}
+              <form method="post" action="{% url 'user_toggle_active' u.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm" style="background:{% if u.is_active %}#fff3cd;color:#856404{% else %}#d4edda;color:#155724{% endif %};border:1px solid {% if u.is_active %}#ffc107{% else %}#28a745{% endif %};">
+                  {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="padding:32px;text-align:center;color:var(--text3);">No users found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Daily Report - Ericus POS{% endblock %}
+{% block page_title %}Daily Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<div class="display-actions" style="display: flex; gap: 8px;">
+  <button onclick="window.print()" class="btn btn-outline btn-sm">Print Ledger</button>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-primary btn-sm">&larr; Reports Dashboard</a>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Metric Analytics Matrix Styling */
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .stat-box {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .stat-box.highlight-net {
+    border-left: 4px solid #28a745;
+  }
+
+  .stat-box.highlight-cash {
+    border-left: 4px solid #4a6cf7;
+  }
+
+  .s-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text3);
+    font-weight: bold;
+  }
+
+  .s-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text);
+    font-family: 'Times New Roman', serif;
+  }
+
+  /* Split Architecture Layout Blocks */
+  .report-split-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 992px) {
+    .report-split-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Micro Ledger Component Layout lists */
+  .ledger-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ledger-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+  }
+
+  .ledger-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  /* Print Override Optimizations */
+  @media print {
+    .sidebar, .topbar, .topbar-actions, .btn, .page-header, .filter-card, .developer-note-card {
+      display: none !important;
+    }
+    .main-wrap {
+      margin-left: 0 !important;
+      padding: 0 !important;
+    }
+    .analytics-grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 12px !important;
+    }
+    .report-split-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .card {
+      border: 1px solid #000 !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Daily Operations Summary</h1>
+  <span class="badge badge-success">Live Engine Analytics</span>
+</div>
+
+<!-- Date Parameter Interface Filter Card -->
+<div class="card mb-3 filter-card">
+  <div class="card-body">
+    <form method="get" style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" style="font-weight: bold;">Select Target Report Date</label>
+        <input type="date" name="report_date" value="{{ report_date }}" class="form-control" style="width: 200px;" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Compile Ledger Report</button>
+    </form>
+  </div>
+</div>
+
+<!-- Aggregated Numerical Analytics Metrics Deck -->
+<div class="analytics-grid">
+  <div class="stat-box">
+    <div class="s-label">Gross Operational Volume</div>
+    <div class="s-value">GHS {{ total_sales|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Clearing Transactions</div>
+    <div class="s-value">{{ transaction_count|default:"0" }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Gross Margin Yield</div>
+    <div class="s-value">GHS {{ gross_profit|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Operational Surcharges/Expenses</div>
+    <div class="s-value" style="color: #dc3545;">GHS {{ total_expenses|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box highlight-net">
+    <div class="s-label">Net Performance Yield</div>
+    <div class="s-value" style="color: #28a745;">GHS {{ net_profit|default:"0.00" }}</div>
+  </div>
+  <div class="stat-box highlight-cash">
+    <div class="s-label">Liquid Cash In Vault</div>
+    <div class="s-value" style="color: #4a6cf7;">GHS {{ cash_in_hand|default:"0.00" }}</div>
+  </div>
+</div>
+
+<!-- Multi-Channel Distribution Grid Matrix -->
+<div class="report-split-grid">
+  
+  <!-- Chart/Timeline Log Space Visualization Block -->
+  <div class="card">
+    <div class="card-head"><h3>Hourly Sales Distribution Chronology</h3></div>
+    <div class="card-body" style="padding: 24px;">
+      {% if hourly_sales %}
+        <!-- Implement chart logic loops or scalable CSS bars if rendering natively via data matrices -->
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 160px; padding-top: 20px; border-bottom: 2px solid var(--border);">
+          {% for hour in hourly_sales %}
+            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; gap: 8px;">
+              <span style="font-size: 10px; color: var(--text3);">{{ hour.total|floatformat:0 }}</span>
+              <div style="width: 60%; background: #4a6cf7; height: {{ hour.percentage }}px; border-radius: 2px 2px 0 0;" title="GHS {{ hour.total }} at {{ hour.label }}"></div>
+              <span style="font-size: 11px; font-weight: bold; margin-bottom: -22px; color: var(--text2);">{{ hour.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        <div style="margin-top: 24px;"></div>
+      {% else %}
+        <div style="padding: 40px; text-align: center; color: var(--text3);">
+          <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
+          <div style="font-size: 13px;">No itemized chronological sequence captured for this validation frame.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Channel Clearing Methods Matrix Framework -->
+  <div class="card">
+    <div class="card-head"><h3>Settlement Clearing Breakdown</h3></div>
+    <div class="card-body" style="padding: 20px;">
+      <div class="ledger-list">
+        <div class="ledger-item">
+          <span style="font-weight: bold; color: var(--text2);">Liquid Cash Clearing</span>
+          <span class="font-mono" style="font-weight: bold;">GHS {{ payment_methods.cash|default:"0.00" }}</span>
+        </div>
+        <div class="ledger-item">
+          <span style="font-weight: bold; color: var(--text2);">Mobile Money Gateway (MoMo)</span>
+          <span class="font-mono" style="font-weight: bold;">GHS {{ payment_methods.momo|default:"0.00" }}</span>
+        </div>
+        <div class="ledger-item">
+          <span style="font-weight: bold; color: var(--text2);">Deferred Credit Balance Ledger</span>
+          <span class="font-mono" style="font-weight: bold; color: #dc3545;">GHS {{ payment_methods.credit|default:"0.00" }}</span>
+        </div>
+        <div class="ledger-item" style="border-top: 2px solid var(--border); padding-top: 12px; margin-top: 4px;">
+          <span style="font-weight: bold; uppercase; color: var(--text);">Aggregated Settlement Volume</span>
+          <span class="font-mono" style="font-weight: bold; color: #4a6cf7; font-size: 15px;">GHS {{ total_sales|default:"0.00" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Registry Master Ledger Table Logs -->
+<div class="card mb-3">
+  <div class="card-head"><h3>Audit Ledger Log — Real-Time Activity Streams</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time Chrono</th>
+          <th>Receipt Reference</th>
+          <th>System Operator</th>
+          <th>Assigned Client Profile</th>
+          <th style="text-align: center;">Item Quantum</th>
+          <th style="text-align: right;">Gross Cleared (GHS)</th>
+          <th style="text-align: right;">Clearing System</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td class="font-mono">{{ tx.created_at|date:"H:i" }}</td>
+          <td>
+            <a href="{% url 'sales:receipt_detail' tx.pk %}" style="font-weight: bold; color: #4a6cf7; text-decoration: none;">
+              {{ tx.receipt_number }}
+            </a>
+          </td>
+          <td>{{ tx.attendant_username }}</td>
+          <td>{{ tx.customer_name|default:"Walk-In Profile" }}</td>
+          <td style="text-align: center; font-weight: bold;">{{ tx.total_items_count }}</td>
+          <td style="text-align: right; font-weight: bold;" class="font-mono">{{ tx.total }}</td>
+          <td style="text-align: right;"><span class="badge badge-outline">{{ tx.get_payment_method_display|default:"Split / Multi" }}</span></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted" style="padding: 40px;">
+            <div style="font-size: 24px; margin-bottom: 4px;">📂</div>
+            No transaction records cleared inside this specific micro-ledger parameter date context.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Architecture Framework Blueprint Deployment Context -->
+<div class="card developer-note-card" style="border-left: 4px solid #4a6cf7; background: rgba(74, 108, 247, 0.01);">
+  <div class="card-body">
+    <div style="font-size: 13px; font-weight: bold; color: var(--text); margin-bottom: 6px;">🔧 System Architecture Mapping Specs</div>
+    <div style="font-size: 12px; color: var(--text2); line-height: 1.7;">
+      Ensure your processing controller at <code>reports/views.py</code> queries the business entities filtered against the requested parameter <code>report_date</code>. The payload matrix mapping contract requires:
+      <code style="display: block; background: var(--page-bg); padding: 8px; border-radius: 4px; margin-top: 6px; white-space: pre;">
+{
+  'report_date': date_object,
+  'total_sales': Decimal, 'transaction_count': int, 'gross_profit': Decimal,
+  'total_expenses': Decimal, 'net_profit': Decimal, 'cash_in_hand': Decimal,
+  'payment_methods': {'cash': Decimal, 'momo': Decimal, 'credit': Decimal},
+  'hourly_sales': [{'label': '09:00', 'total': 120.00, 'percentage': 45}, ...],
+  'transactions': query_set_object
+}</code>
+    </div>
+  </div>
+</div>
+{% endblock %}

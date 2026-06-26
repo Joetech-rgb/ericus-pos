@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Discount Report - Ericus POS{% endblock %}
+{% block page_title %}Discount Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Discount Report</h1>
+  <span class="badge badge-warning">Coming Soon</span>
+</div>
+
+<!-- Date filter -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">End Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Total Discount Given</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Discount Transactions</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Active Codes</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Expired Codes</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;margin-bottom:16px;">
+
+  <!-- Active discount codes -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head">
+      <h3>Discount Codes Usage</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Times Used</th>
+            <th>Total Saved</th>
+            <th>Expiry</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">No data — view not yet active</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Discounted sales -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head">
+      <h3>Sales With Discounts Applied</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Receipt</th>
+            <th>Code Used</th>
+            <th>Original (GH₵)</th>
+            <th>Discount (GH₵)</th>
+            <th>Final (GH₵)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" class="text-center text-muted" style="padding:24px;">No data — view not yet active</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      Add a <code>discount_report</code> view that queries your <code>Discount</code> model and annotates usage counts
+      from <code>Sale</code> objects that reference each discount code. Wire as
+      <code>path('discounts/', views.discount_report, name='discount_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

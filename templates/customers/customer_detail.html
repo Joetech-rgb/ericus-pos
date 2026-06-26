@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.full_name }} - Ericus POS{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'customers:edit' customer.pk %}" class="btn btn-warning btn-sm">Edit</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ customer.full_name }}</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'customers:edit' customer.pk %}" class="btn btn-warning">Edit</a>
+    <a href="{% url 'customers:list' %}" class="btn btn-outline">← Back</a>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:16px;align-items:start;">
+
+  <!-- Info Card -->
+  <div class="card">
+    <div class="card-head"><h3>Customer Information</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody>
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);width:40%;">Full Name</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:bold;color:var(--text);">{{ customer.full_name }}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Phone</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">{{ customer.phone }}</td>
+          </tr>
+          {% if customer.phone_alt %}
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Alt Phone</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">{{ customer.phone_alt }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Type</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);">
+              <span class="badge badge-{% if customer.customer_type == 'wholesale' %}primary{% else %}secondary{% endif %}">{{ customer.get_customer_type_display }}</span>
+            </td>
+          </tr>
+          {% if customer.company_name %}
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Company</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">{{ customer.company_name }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Address</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">{{ customer.address|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Credit Balance</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:bold;color:{% if customer.credit_balance > 0 %}#dc3545{% else %}var(--text){% endif %};">GHS {{ customer.credit_balance }}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Credit Limit</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">GHS {{ customer.credit_limit }}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">Loyalty Points</td>
+            <td style="padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">{{ customer.loyalty_points }}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 18px;font-size:12px;color:var(--text3);">Member Since</td>
+            <td style="padding:10px 18px;font-size:13px;color:var(--text);">{{ customer.created_at|date:"d M Y" }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Stats + recent sales -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="stats-row" style="grid-template-columns:1fr 1fr;">
+      <div class="stat-box">
+        <div class="s-label">Total Purchases</div>
+        <div class="s-value">{{ customer.sales.count }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Outstanding Balance</div>
+        <div class="s-value" style="color:{% if customer.credit_balance > 0 %}#dc3545{% else %}#28a745{% endif %};">GHS {{ customer.credit_balance }}</div>
+      </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="card">
+      <div class="card-head"><h3>Recent Purchases</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Method</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in customer.sales.all|slice:":10" %}
+            <tr>
+              <td>{{ sale.created_at|date:"d M Y H:i" }}</td>
+              <td>GHS {{ sale.total }}</td>
+              <td>{{ sale.get_payment_method_display }}</td>
+              <td><a href="{% url 'sales:detail' sale.pk %}" class="btn btn-sm btn-outline">View</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No purchases yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if customer.notes %}
+    <div class="card">
+      <div class="card-head"><h3>Notes</h3></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);">{{ customer.notes }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

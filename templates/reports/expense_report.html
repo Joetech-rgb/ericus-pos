@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Expense Report - Ericus POS{% endblock %}
+{% block page_title %}Expense Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Expense Report <span class="text-muted text-sm" style="font-weight:normal;">(Detailed)</span></h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'reports:expense_summary' %}" class="btn btn-outline btn-sm">View Summary Instead</a>
+    <span class="badge badge-warning">Coming Soon</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">End Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Category</label>
+        <select name="category_id" class="form-control" style="width:180px;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="?format=csv&date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- Stat row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;">
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Total Expenses</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">No. of Records</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Highest Single Expense</div>
+    <div class="s-value" style="color:var(--text3);">GHS —</div>
+  </div>
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">Categories Used</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+  </div>
+</div>
+
+<!-- Expense line items table -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head">
+    <h3>All Expense Entries</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Recorded By</th>
+          <th class="text-right">Amount (GH₵)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in data.expenses %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ expense.date }}</td>
+          <td>{{ expense.category }}</td>
+          <td>{{ expense.description }}</td>
+          <td>{{ expense.recorded_by }}</td>
+          <td class="text-right">{{ expense.amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">No data — view not yet active</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if data.expenses %}
+      <tfoot>
+        <tr style="background:var(--page-bg);font-weight:bold;">
+          <td colspan="5" class="text-right" style="padding:10px 14px;">Total</td>
+          <td class="text-right" style="padding:10px 14px;">GHS {{ data.total|default:"0.00" }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      This is the <em>line-item</em> expense view (vs. <code>expense_summary</code> which groups by category).
+      Add an <code>expense_report</code> view querying your <code>Expense</code> model with date + category filters.
+      Wire as <code>path('expenses/detail/', views.expense_report, name='expense_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

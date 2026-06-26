@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Monthly Report - Ericus POS{% endblock %}
+{% block page_title %}Monthly Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'reports:dashboard' %}" class="btn btn-outline btn-sm">← Reports</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Monthly Report</h1>
+  <span class="badge badge-warning">Coming Soon</span>
+</div>
+
+<!-- Month/Year picker -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Month</label>
+        <select name="month" class="form-control" style="width:150px;">
+          {% for m in "January,February,March,April,May,June,July,August,September,October,November,December"|split:"," %}
+          <option value="{{ forloop.counter }}" {% if forloop.counter == selected_month %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Year</label>
+        <input type="number" name="year" value="{{ selected_year|default:'2025' }}" min="2020" max="2030" class="form-control" style="width:100px;">
+      </div>
+      <button type="submit" class="btn btn-primary">Load Report</button>
+      <a href="?format=pdf&month={{ selected_month }}&year={{ selected_year }}" class="btn btn-outline">Export PDF</a>
+      <a href="?format=csv&month={{ selected_month }}&year={{ selected_year }}" class="btn btn-outline">Export CSV</a>
+    </form>
+  </div>
+</div>
+
+<!-- KPI grid -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+  {% for label in "Total Revenue,Total Transactions,Gross Profit,Total Expenses,Net Profit,Avg Daily Sales,New Customers,Items Sold"|split:"," %}
+  <div class="stat-box" style="opacity:0.45;">
+    <div class="s-label">{{ label }}</div>
+    <div class="s-value" style="color:var(--text3);">—</div>
+    <div class="s-sub">vs last month: <span style="color:var(--text3);">—</span></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid-2" style="gap:16px;margin-bottom:16px;">
+
+  <!-- Weekly breakdown -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Weekly Breakdown</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Week</th><th>Dates</th><th>Transactions</th><th>Revenue (GH₵)</th><th>Profit (GH₵)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top performers -->
+  <div class="card" style="opacity:0.5;">
+    <div class="card-head"><h3>Top Performing Products</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Product</th><th>Units Sold</th><th>Revenue (GH₵)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Daily breakdown for the month -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>Day-by-Day Breakdown</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Day</th>
+          <th>Transactions</th>
+          <th>Revenue (GH₵)</th>
+          <th>COGS (GH₵)</th>
+          <th>Gross Profit (GH₵)</th>
+          <th>Expenses (GH₵)</th>
+          <th>Net (GH₵)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">No data — view not yet active</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- P&L Summary for month -->
+<div class="card mb-3" style="opacity:0.5;">
+  <div class="card-head"><h3>Monthly P&amp;L Summary</h3></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:500px;">
+      <div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Income</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>Sales Revenue</span><span>GHS —</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text3);"><span>Less: COGS</span><span>(GHS —)</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:bold;"><span>Gross Profit</span><span>GHS —</span></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Expenses</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>Operating Expenses</span><span>GHS —</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:bold;color:#28a745;"><span>Net Profit</span><span>GHS —</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="border-left:4px solid #4a6cf7;">
+  <div class="card-body">
+    <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:6px;">🔧 Developer Note</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+      Add a <code>monthly_report</code> view that accepts <code>?month=6&year=2025</code> params, computes
+      date range with <code>calendar.monthrange()</code>, then calls <code>run_report('profit_loss', params)</code>
+      plus a day-by-day query. Wire as <code>path('monthly/', views.monthly_report, name='monthly_report')</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

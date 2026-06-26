@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Sales by Product - Ericus POS{% endblock %}
+{% block page_title %}Sales by Product{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=csv" class="btn btn-sm btn-outline">↓ CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Sales by Product</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+    <div style="margin-top:16px;"><a href="?date_from={{ date_from }}&date_to={{ date_to }}&format=csv" class="btn btn-outline">↓ CSV</a></div>
+  </div>
+</form>
+
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Products Sold</div>
+    <div class="s-value">{{ data.rows|length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Revenue</div>
+    <div class="s-value">GHS {{ data.grand_total_revenue }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Gross Profit</div>
+    <div class="s-value" style="color:#28a745;">GHS {{ data.grand_total_profit }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Product Performance</h3>
+    <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Brand</th>
+          <th class="text-right">Units Sold</th>
+          <th class="text-right">Transactions</th>
+          <th class="text-right">Revenue (GHS)</th>
+          <th class="text-right">Cost (GHS)</th>
+          <th class="text-right">Gross Profit (GHS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+        <tr>
+          <td style="color:var(--text3);">{{ forloop.counter }}</td>
+          <td style="font-weight:bold;">{{ row.product_name }}</td>
+          <td style="color:var(--text2);">{{ row.product_brand|default:"—" }}</td>
+          <td class="text-right">{{ row.units_sold }}</td>
+          <td class="text-right">{{ row.transaction_count }}</td>
+          <td class="text-right">{{ row.total_revenue }}</td>
+          <td class="text-right" style="color:var(--text3);">{{ row.total_cost }}</td>
+          <td class="text-right" style="font-weight:bold;color:{% if row.gross_profit > 0 %}#28a745{% else %}#dc3545{% endif %};">{{ row.gross_profit }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">No sales data for this period.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if data.rows %}
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);">
+          <td colspan="5" style="padding:10px 14px;font-weight:bold;text-align:right;">Grand Total</td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;">GHS {{ data.grand_total_revenue }}</td>
+          <td></td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;color:#28a745;">GHS {{ data.grand_total_profit }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Customers - Ericus POS{% endblock %}
+{% block page_title %}Customers{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'customers:create' %}" class="btn btn-primary btn-sm">+ Add Customer</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Customers</h1>
+  <a href="{% url 'customers:create' %}" class="btn btn-primary">+ Add Customer</a>
+</div>
+
+<!-- Filter Bar -->
+<form method="get">
+  <div class="filter-bar">
+    <input type="text" name="q" value="{{ filters.q }}" placeholder="Search name, phone…" class="form-control" style="width:220px;">
+    <select name="type" class="form-control" style="width:150px;">
+      <option value="">All Types</option>
+      <option value="retail" {% if filters.type == 'retail' %}selected{% endif %}>Retail</option>
+      <option value="wholesale" {% if filters.type == 'wholesale' %}selected{% endif %}>Wholesale</option>
+    </select>
+    <select name="balance" class="form-control" style="width:160px;">
+      <option value="">All Customers</option>
+      <option value="1" {% if filters.balance == '1' %}selected{% endif %}>With Balance</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{% url 'customers:list' %}" class="btn btn-outline">Clear</a>
+  </div>
+</form>
+
+{% if total_with_balance > 0 %}
+<div style="margin-bottom:12px;font-size:13px;font-family:'Times New Roman',serif;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:var(--radius);padding:8px 14px;">
+  {{ total_with_balance }} customer{{ total_with_balance|pluralize }} have outstanding credit balances.
+  <a href="?balance=1" style="color:#856404;font-weight:bold;">View all</a>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Type</th>
+          <th>Credit Balance</th>
+          <th>Loyalty Points</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in page_obj %}
+        <tr>
+          <td>
+            <a href="{% url 'customers:detail' customer.pk %}" style="color:var(--text);text-decoration:none;font-weight:bold;">{{ customer.full_name }}</a>
+            {% if customer.company_name %}<div style="font-size:11px;color:var(--text3);">{{ customer.company_name }}</div>{% endif %}
+          </td>
+          <td>{{ customer.phone }}</td>
+          <td><span class="badge badge-{% if customer.customer_type == 'wholesale' %}primary{% else %}secondary{% endif %}">{{ customer.get_customer_type_display }}</span></td>
+          <td>
+            {% if customer.credit_balance > 0 %}
+            <span style="color:#dc3545;font-weight:bold;">GHS {{ customer.credit_balance }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ customer.loyalty_points }}</td>
+          <td>
+            {% if customer.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{% url 'customers:detail' customer.pk %}" class="btn btn-sm btn-outline">View</a>
+              <a href="{% url 'customers:edit' customer.pk %}" class="btn btn-sm btn-warning">Edit</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted" style="padding:30px;">No customers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <span class="page-link active">{{ num }}</span>
+      {% elif num|add:"-3" <= page_obj.number and page_obj.number <= num|add:"3" %}
+        <a class="page-link" href="?page={{ num }}&q={{ filters.q }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}<a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

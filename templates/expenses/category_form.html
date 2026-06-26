@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Category — GatPOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --sidebar-bg:   #1a1a2e;
+    --accent:       #17a589;
+    --accent-hover: #148f77;
+    --danger:       #e74c3c;
+    --light-bg:     #f4f6f8;
+    --card-bg:      #ffffff;
+    --border:       #dde1e7;
+    --text-main:    #1a1a2e;
+    --text-muted:   #6b7280;
+    --font:         'Times New Roman', Times, serif;
+    --radius:       6px;
+    --shadow:       0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--light-bg); color: var(--text-main); font-size: 14px; }
+
+  .page-content { padding: 24px 28px; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-header h1 { font-size: 20px; font-weight: 700; }
+  .page-header .breadcrumb { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .18s, transform .12s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .form-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    max-width: 600px;
+  }
+
+  .form-card-header {
+    background: var(--sidebar-bg);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .form-card-header h2 { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .3px; }
+
+  .header-accent {
+    width: 4px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .form-body { padding: 28px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+  }
+
+  .field label .required { color: var(--danger); margin-left: 2px; }
+
+  .field input,
+  .field select,
+  .field textarea {
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    background: #fff;
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+    width: 100%;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(23,165,137,.1);
+  }
+
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field .help-text { font-size: 11px; color: var(--text-muted); font-style: italic; }
+  .field .error-text { font-size: 11px; color: var(--danger); font-weight: 600; }
+
+  /* Icon preview */
+  .icon-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+
+  .icon-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e8f8f5;
+    color: var(--accent);
+    font-size: 18px;
+    border: 2px solid #a9dfbf;
+    flex-shrink: 0;
+  }
+
+  .icon-preview-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Checkbox row */
+  .check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: #fafbfc;
+    cursor: pointer;
+    transition: border-color .18s;
+  }
+  .check-row:hover { border-color: var(--accent); }
+  .check-row input[type="checkbox"] { width:16px; height:16px; margin-top:2px; flex-shrink:0; accent-color:var(--accent); }
+  .check-row .check-label { font-size:13px; font-weight:600; color:var(--text-main); }
+  .check-row .check-hint  { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  .form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 24px;
+    border-top: 1px solid var(--border);
+    background: #fafbfc;
+  }
+
+  .non-field-errors {
+    background: #fdedec;
+    border: 1px solid #f5b7b1;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 0;
+  }
+
+  .alert { padding:11px 16px; border-radius:var(--radius); font-size:13px; margin-bottom:16px; border-left:4px solid transparent; }
+  .alert-success { background:#e8f8f5; border-color:var(--accent); color:#1e8449; }
+  .alert-error   { background:#fdedec; border-color:var(--danger); color:#922b21; }
+
+  /* Suggested icons grid */
+  .icon-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .icon-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: #fff;
+    transition: border-color .15s, color .15s;
+    user-select: none;
+  }
+
+  .icon-chip:hover,
+  .icon-chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #f0faf8;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  <div class="page-header">
+    <div>
+      <h1>{{ action }} Category</h1>
+      <div class="breadcrumb">Dashboard / Expenses / Categories / {{ action }}</div>
+    </div>
+    <a href="{% url 'expenses:category_list' %}" class="btn btn-outline">Back to Categories</a>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="header-accent"></div>
+      <h2>{{ action }} Expense Category</h2>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-body">
+
+        {% if form.non_field_errors %}
+          <div class="non-field-errors">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Name -->
+        <div class="field">
+          <label for="{{ form.name.id_for_label }}">Category Name <span class="required">*</span></label>
+          {{ form.name }}
+          {% for error in form.name.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+        </div>
+
+        <!-- Description -->
+        <div class="field">
+          <label for="{{ form.description.id_for_label }}">Description</label>
+          {{ form.description }}
+          {% for error in form.description.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+        </div>
+
+        <!-- Icon -->
+        <div class="field">
+          <label for="{{ form.icon.id_for_label }}">Font Awesome Icon Class <span class="required">*</span></label>
+          {{ form.icon }}
+          {% if form.icon.help_text %}<span class="help-text">{{ form.icon.help_text }}</span>{% endif %}
+          {% for error in form.icon.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+
+          <!-- Live preview -->
+          <div class="icon-preview-row">
+            <div class="icon-preview" id="iconPreview">
+              <i class="fas fa-receipt" id="iconEl"></i>
+            </div>
+            <span class="icon-preview-label">Icon preview — updates as you type</span>
+          </div>
+
+          <!-- Suggested icons -->
+          <div style="margin-top:10px;">
+            <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted);">Suggested Icons</span>
+            <div class="icon-grid" id="iconGrid">
+              {% with icons="fa-receipt,fa-bolt,fa-home,fa-car,fa-utensils,fa-tools,fa-user-tie,fa-truck,fa-phone,fa-wifi,fa-water,fa-fire,fa-box,fa-print,fa-laptop,fa-heartbeat,fa-graduation-cap,fa-shield-alt,fa-globe,fa-tshirt" %}
+              {% for icon in icons.split %}
+                <span class="icon-chip" data-icon="{{ icon }}">
+                  <i class="fas {{ icon }}"></i> {{ icon }}
+                </span>
+              {% endfor %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Active -->
+        <div class="field">
+          <label class="check-row" for="{{ form.is_active.id_for_label }}">
+            {{ form.is_active }}
+            <div>
+              <div class="check-label">Active Category</div>
+              <div class="check-hint">Inactive categories will not appear when recording expenses.</div>
+            </div>
+          </label>
+          {% for error in form.is_active.errors %}<span class="error-text">{{ error }}</span>{% endfor %}
+        </div>
+
+      </div><!-- /form-body -->
+
+      <div class="form-footer">
+        <a href="{% url 'expenses:category_list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ action }} Category</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  const iconInput = document.getElementById('{{ form.icon.id_for_label }}');
+  const iconEl    = document.getElementById('iconEl');
+  const iconGrid  = document.getElementById('iconGrid');
+
+  // Live preview as user types
+  iconInput.addEventListener('input', function () {
+    iconEl.className = 'fas ' + this.value.trim();
+  });
+
+  // Click a suggested icon chip
+  iconGrid.querySelectorAll('.icon-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      const ico = this.dataset.icon;
+      iconInput.value = ico;
+      iconEl.className = 'fas ' + ico;
+      iconGrid.querySelectorAll('.icon-chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Highlight chip matching current value on load
+  const current = iconInput.value.trim();
+  iconGrid.querySelectorAll('.icon-chip').forEach(function (chip) {
+    if (chip.dataset.icon === current) chip.classList.add('active');
+  });
+</script>
+{% endblock %}

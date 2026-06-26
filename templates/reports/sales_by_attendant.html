@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Sales by Attendant - Ericus POS{% endblock %}
+{% block page_title %}Sales by Attendant{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Sales by Attendant</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<form method="get" style="margin-bottom:18px;">
+  <div class="filter-bar">
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width:160px;">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px;font-family:'Times New Roman',serif;">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width:160px;">
+    </div>
+    <div style="margin-top:16px;"><button type="submit" class="btn btn-primary">Run Report</button></div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Attendant Performance</h3>
+    <span style="font-size:12px;color:var(--text3);">{{ date_from }} to {{ date_to }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Attendant</th>
+          <th>Username</th>
+          <th class="text-right">Transactions</th>
+          <th class="text-right">Revenue (GHS)</th>
+          <th class="text-right">Discounts Given (GHS)</th>
+          <th class="text-right">Net Revenue (GHS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+        <tr>
+          <td style="color:var(--text3);">{{ forloop.counter }}</td>
+          <td style="font-weight:bold;">{{ row.attendant__full_name|default:"Unknown" }}</td>
+          <td style="color:var(--text2);">{{ row.attendant__username }}</td>
+          <td class="text-right">{{ row.transaction_count }}</td>
+          <td class="text-right" style="font-weight:bold;">{{ row.total_revenue }}</td>
+          <td class="text-right" style="color:#dc3545;">{{ row.total_discounts|default:"0.00" }}</td>
+          <td class="text-right" style="font-weight:bold;color:#28a745;">
+            {% if row.total_revenue and row.total_discounts %}
+              {{ row.total_revenue|add:"-"|add:row.total_discounts }}
+            {% else %}
+              {{ row.total_revenue|default:"0.00" }}
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted" style="padding:30px;">No sales data for this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

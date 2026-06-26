@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}{{ sale.receipt_number }} - Ericus POS{% endblock %}
+{% block page_title %}Sale Detail{% endblock %}
+{% block nav_pos %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'sales:receipt' sale.pk %}" class="btn btn-primary btn-sm">View Receipt</a>
+<a href="{% url 'sales:receipt_pdf' sale.pk %}" class="btn btn-outline btn-sm">Download PDF</a>
+<a href="{% url 'sales:sale_list' %}" class="btn btn-outline btn-sm">&#8592; Back</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Sale Header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="grid-2" style="gap:24px;">
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;margin-bottom:3px;">Receipt Number</div>
+        <div style="font-size:22px;font-weight:bold;font-family:'Times New Roman',serif;color:var(--text);">{{ sale.receipt_number }}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+          {% if sale.payment_method == 'cash' %}<span class="badge badge-success">Cash</span>
+          {% elif sale.payment_method == 'momo' %}<span class="badge badge-primary">MoMo</span>
+          {% elif sale.payment_method == 'split' %}<span class="badge badge-info">Split</span>
+          {% elif sale.payment_method == 'credit' %}<span class="badge badge-danger">Credit</span>{% endif %}
+          {% if sale.sale_type == 'wholesale' %}<span class="badge badge-warning">Wholesale</span>
+          {% else %}<span class="badge badge-secondary">Retail</span>{% endif %}
+          {% if sale.is_credit %}<span class="badge badge-danger">Credit Sale</span>{% endif %}
+          <span class="badge badge-info">LOCKED</span>
+        </div>
+      </div>
+      <div>
+        <div class="grid-2" style="gap:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Date & Time</div>
+            <div style="font-family:'Times New Roman',serif;font-weight:bold;">{{ sale.created_at|date:"d M Y" }}</div>
+            <div style="font-size:12px;color:var(--text3);font-family:'Times New Roman',serif;">{{ sale.created_at|date:"H:i:s" }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Attendant</div>
+            <div style="font-family:'Times New Roman',serif;">{{ sale.attendant.get_full_name|default:sale.attendant_username }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Customer</div>
+            <div style="font-family:'Times New Roman',serif;">{{ sale.customer_name|default:"Walk-in Customer" }}</div>
+          </div>
+          {% if sale.is_credit and sale.credit_due_date %}
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Credit Due Date</div>
+            <div style="font-family:'Times New Roman',serif;color:#dc3545;font-weight:bold;">{{ sale.credit_due_date|date:"d M Y" }}</div>
+          </div>
+          {% endif %}
+          {% if sale.discount_code_used %}
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Discount Code</div>
+            <div style="font-family:'Times New Roman',serif;">{{ sale.discount_code_used }}</div>
+          </div>
+          {% endif %}
+          {% if sale.notes %}
+          <div style="grid-column:1/-1;">
+            <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;">Notes</div>
+            <div style="font-family:'Times New Roman',serif;font-size:13px;">{{ sale.notes }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Financials -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Subtotal</div>
+    <div class="s-value">GHS {{ sale.subtotal }}</div>
+  </div>
+  {% if sale.discount_amount > 0 %}
+  <div class="stat-box">
+    <div class="s-label">Discount</div>
+    <div class="s-value" style="color:#28a745;">- GHS {{ sale.discount_amount }}</div>
+  </div>
+  {% endif %}
+  {% if sale.installation_fee > 0 %}
+  <div class="stat-box">
+    <div class="s-label">Installation Fee</div>
+    <div class="s-value">GHS {{ sale.installation_fee }}</div>
+  </div>
+  {% endif %}
+  {% if sale.delivery_fee > 0 %}
+  <div class="stat-box">
+    <div class="s-label">Delivery Fee</div>
+    <div class="s-value">GHS {{ sale.delivery_fee }}</div>
+  </div>
+  {% endif %}
+  <div class="stat-box">
+    <div class="s-label">Total</div>
+    <div class="s-value" style="color:#4a6cf7;">GHS {{ sale.total }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Amount Paid</div>
+    <div class="s-value" style="color:#28a745;">GHS {{ sale.amount_paid }}</div>
+  </div>
+  {% if sale.change_given > 0 %}
+  <div class="stat-box">
+    <div class="s-label">Change Given</div>
+    <div class="s-value">GHS {{ sale.change_given }}</div>
+  </div>
+  {% endif %}
+  {% if sale.is_credit %}
+  <div class="stat-box">
+    <div class="s-label">Balance Due</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ sale.balance_due }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Items -->
+<div class="card mb-3">
+  <div class="card-head">
+    <h3>Items Sold</h3>
+    <span class="text-muted text-sm">{{ sale.item_count }} unit(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Serial Number</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Item Discount</th>
+          <th>Subtotal</th>
+          {% if request.user.is_owner %}<th>Cost</th><th>Profit</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td>
+            <div style="font-weight:bold;">{{ item.product_name }}</div>
+            <div style="font-size:11px;color:var(--text3);">
+              {% if item.product_brand %}{{ item.product_brand }}{% endif %}
+              {% if item.product_model %} · {{ item.product_model }}{% endif %}
+            </div>
+          </td>
+          <td class="text-sm">{{ item.serial_number|default:"—" }}</td>
+          <td class="text-sm">{{ item.quantity }}</td>
+          <td class="text-sm">GHS {{ item.unit_price }}</td>
+          <td class="text-sm">
+            {% if item.item_discount > 0 %}
+            <span style="color:#28a745;">- GHS {{ item.item_discount }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td><strong>GHS {{ item.subtotal }}</strong></td>
+          {% if request.user.is_owner %}
+          <td class="text-sm text-muted">GHS {{ item.cost_price }}</td>
+          <td class="text-sm" style="color:#28a745;">GHS {{ item.profit }}</td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted" style="padding:20px;">No items recorded.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Payments -->
+<div class="card mb-3">
+  <div class="card-head"><h3>Payment Breakdown</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Amount</th>
+          <th>MoMo Reference</th>
+          <th>Recorded At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td>
+            {% if payment.method == 'cash' %}<span class="badge badge-success">Cash</span>
+            {% elif payment.method == 'momo' %}<span class="badge badge-primary">MoMo</span>
+            {% elif payment.method == 'credit' %}<span class="badge badge-danger">Credit</span>
+            {% endif %}
+          </td>
+          <td><strong>GHS {{ payment.amount }}</strong></td>
+          <td class="text-sm text-muted">{{ payment.momo_reference|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ payment.recorded_at|date:"d M Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No payment records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if request.user.is_owner %}
+<!-- Profit Summary — owner only -->
+<div class="card">
+  <div class="card-head"><h3>Profit Summary</h3><span class="badge badge-info">Owner Only</span></div>
+  <div class="card-body">
+    <div class="grid-3" style="gap:16px;">
+      <div class="stat-box">
+        <div class="s-label">Gross Profit</div>
+        <div class="s-value" style="color:#28a745;">GHS {{ sale.gross_profit }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Sale Total</div>
+        <div class="s-value">GHS {{ sale.total }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Profit Margin</div>
+        <div class="s-value">{{ sale.profit_margin|floatformat:1 }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

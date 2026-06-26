@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Products - Ericus POS{% endblock %}
+{% block page_title %}Products Management{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'product_create' %}" class="btn btn-primary btn-sm">+ Add Product</a>
+<a href="{% url 'bulk_import' %}" class="btn btn-outline btn-sm">Bulk Import</a>
+<a href="{% url 'category_list' %}" class="btn btn-outline btn-sm">Categories</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Total Products</div>
+    <div class="s-value">{{ total_products|default:"0" }}</div>
+    <div class="s-sub">Active products</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Low Stock</div>
+    <div class="s-value" style="color:#dc3545;">{{ low_stock_count|default:"0" }}</div>
+    <div class="s-sub">Below reorder point</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Stock Value</div>
+    <div class="s-value">GHS {{ stock_value|default:"0.00" }}</div>
+    <div class="s-sub">At cost price</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Categories</div>
+    <div class="s-value">{{ total_categories|default:"0" }}</div>
+    <div class="s-sub">Active categories</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search by name, brand, barcode, SKU..." style="max-width:280px;">
+      <select name="category" class="form-control" style="max-width:180px;">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="stock" class="form-control" style="max-width:160px;">
+        <option value="">All Stock Levels</option>
+        <option value="low" {% if request.GET.stock == "low" %}selected{% endif %}>Low Stock</option>
+        <option value="ok" {% if request.GET.stock == "ok" %}selected{% endif %}>In Stock</option>
+        <option value="out" {% if request.GET.stock == "out" %}selected{% endif %}>Out of Stock</option>
+      </select>
+      <select name="status" class="form-control" style="max-width:140px;">
+        <option value="">All Status</option>
+        <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if request.GET.status == "inactive" %}selected{% endif %}>Inactive</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'product_list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Products Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Products
+      {% if request.GET.q or request.GET.category or request.GET.stock %}
+      <span class="badge badge-info" style="margin-left:6px;">Filtered</span>
+      {% endif %}
+    </h3>
+    <span class="text-muted text-sm">{{ products.paginator.count|default:"0" }} product(s) found</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Barcode / SKU</th>
+          <th>Cost</th>
+          <th>Selling Price</th>
+          <th>Margin</th>
+          <th>Stock</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td class="text-muted text-sm">{{ forloop.counter }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              {% if product.image %}
+              <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+              {% else %}
+              <div style="width:36px;height:36px;background:var(--page-bg);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;">📦</div>
+              {% endif %}
+              <div>
+                <div style="font-weight:bold;color:var(--text);">{{ product.name }}</div>
+                <div style="font-size:11px;color:var(--text3);">
+                  {% if product.brand %}{{ product.brand }}{% endif %}
+                  {% if product.model_number %} · {{ product.model_number }}{% endif %}
+                  {% if product.warranty_months %} · {{ product.warranty_display }}{% endif %}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>{{ product.category.name }}</td>
+          <td>
+            <div style="font-size:12px;">
+              {% if product.barcode %}<div class="text-muted">BC: {{ product.barcode }}</div>{% endif %}
+              {% if product.sku %}<div class="text-muted">SKU: {{ product.sku }}</div>{% endif %}
+              {% if not product.barcode and not product.sku %}<span class="text-muted">—</span>{% endif %}
+            </div>
+          </td>
+          <td>GHS {{ product.cost_price }}</td>
+          <td>GHS {{ product.selling_price }}</td>
+          <td>
+            <span style="color:{% if product.profit_margin >= 20 %}#28a745{% elif product.profit_margin >= 10 %}#856404{% else %}#dc3545{% endif %};">
+              {{ product.profit_margin }}%
+            </span>
+          </td>
+          <td>
+            {% if product.current_stock == 0 %}
+              <span class="badge badge-danger">Out of Stock</span>
+            {% elif product.is_low_stock %}
+              <span class="badge badge-warning">{{ product.current_stock }} — Low</span>
+            {% else %}
+              <span class="badge badge-success">{{ product.current_stock }}</span>
+            {% endif %}
+            {% if product.demo_stock > 0 %}
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">{{ product.demo_stock }} demo</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if product.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              <a href="{% url 'product_detail' product.pk %}" class="btn btn-sm btn-outline">View</a>
+              <a href="{% url 'product_edit' product.pk %}" class="btn btn-sm btn-primary">Edit</a>
+              {% if request.user.is_owner %}
+              <a href="{% url 'add_unit' product.pk %}" class="btn btn-sm btn-success">+ Unit</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted" style="padding:40px;">
+            <div style="font-size:32px;margin-bottom:8px;">📦</div>
+            <div>No products found.</div>
+            {% if request.GET.q or request.GET.category %}
+            <div style="margin-top:8px;"><a href="{% url 'product_list' %}" class="btn btn-sm btn-outline">Clear filters</a></div>
+            {% else %}
+            <div style="margin-top:8px;"><a href="{% url 'product_create' %}" class="btn btn-sm btn-primary">Add first product</a></div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if products.has_other_pages %}
+  <div class="pagination">
+    {% if products.has_previous %}
+    <a href="?page={{ products.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">&#8249;</a>
+    {% else %}
+    <span class="page-link disabled">&#8249;</span>
+    {% endif %}
+
+    {% for num in products.paginator.page_range %}
+      {% if products.number == num %}
+        <span class="page-link active">{{ num }}</span>
+      {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+        <a href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if products.has_next %}
+    <a href="?page={{ products.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">&#8250;</a>
+    {% else %}
+    <span class="page-link disabled">&#8250;</span>
+    {% endif %}
+    <span class="text-muted text-sm" style="margin-left:8px;">Page {{ products.number }} of {{ products.paginator.num_pages }}</span>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

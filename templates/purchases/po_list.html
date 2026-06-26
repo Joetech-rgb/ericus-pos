@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Purchase Orders - Ericus POS{% endblock %}
+{% block page_title %}Purchase Orders{% endblock %}
+{% block nav_purchasesmgmt %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'purchases:po_create' %}" class="btn btn-primary btn-sm">+ New Purchase Order</a>
+<a href="{% url 'purchases:supplier_list' %}" class="btn btn-outline btn-sm">Suppliers</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="s-label">Total Orders</div>
+    <div class="s-value">{{ summary.total_orders|default:"0" }}</div>
+    <div class="s-sub">All time</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Draft</div>
+    <div class="s-value">{{ summary.draft|default:"0" }}</div>
+    <div class="s-sub">Not yet sent</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Ordered</div>
+    <div class="s-value" style="color:#4a6cf7;">{{ summary.ordered|default:"0" }}</div>
+    <div class="s-sub">Awaiting delivery</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Partially Received</div>
+    <div class="s-value" style="color:#856404;">{{ summary.partial|default:"0" }}</div>
+    <div class="s-sub">Incomplete deliveries</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Spent</div>
+    <div class="s-value">GHS {{ summary.total_spent|default:"0.00" }}</div>
+    <div class="s-sub">Received orders</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Amount Due</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ summary.total_due|default:"0.00" }}</div>
+    <div class="s-sub">Unpaid balance</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search PO number..." style="max-width:200px;">
+      <select name="status" class="form-control" style="max-width:180px;">
+        <option value="">All Statuses</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="supplier" class="form-control" style="max-width:200px;">
+        <option value="">All Suppliers</option>
+        {% for s in suppliers %}
+        <option value="{{ s.id }}" {% if selected_supplier == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="max-width:150px;">
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="max-width:150px;">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'purchases:po_list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- PO Table -->
+<div class="card">
+  <div class="card-head">
+    <h3>Purchase Orders</h3>
+    <span class="text-muted text-sm">{{ page_obj.paginator.count }} order(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PO Number</th>
+          <th>Supplier</th>
+          <th>Order Date</th>
+          <th>Expected</th>
+          <th>Items</th>
+          <th>Grand Total</th>
+          <th>Amount Paid</th>
+          <th>Amount Due</th>
+          <th>Status</th>
+          <th>Created By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for po in page_obj %}
+        <tr>
+          <td>
+            <a href="{% url 'purchases:po_detail' po.pk %}" style="color:#4a6cf7;text-decoration:none;font-weight:bold;">
+              {{ po.po_number }}
+            </a>
+          </td>
+          <td>
+            <div style="font-weight:bold;">{{ po.supplier.name }}</div>
+          </td>
+          <td class="text-sm">{{ po.order_date|date:"d M Y" }}</td>
+          <td class="text-sm">{{ po.expected_date|date:"d M Y"|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ po.total_items }}</td>
+          <td class="text-sm">GHS {{ po.grand_total }}</td>
+          <td class="text-sm" style="color:#28a745;">GHS {{ po.amount_paid }}</td>
+          <td class="text-sm" style="{% if po.amount_due > 0 %}color:#dc3545;font-weight:bold;{% endif %}">
+            GHS {{ po.amount_due }}
+          </td>
+          <td>
+            {% if po.status == 'draft' %}<span class="badge badge-secondary">Draft</span>
+            {% elif po.status == 'ordered' %}<span class="badge badge-primary">Ordered</span>
+            {% elif po.status == 'partial' %}<span class="badge badge-warning">Partial</span>
+            {% elif po.status == 'received' %}<span class="badge badge-success">Received</span>
+            {% elif po.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
+            {% endif %}
+          </td>
+          <td class="text-sm text-muted">{{ po.created_by.get_full_name|default:po.created_by.username }}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <a href="{% url 'purchases:po_detail' po.pk %}" class="btn btn-sm btn-outline">View</a>
+              {% if po.status == 'draft' %}
+              <a href="{% url 'purchases:po_edit' po.pk %}" class="btn btn-sm btn-primary">Edit</a>
+              {% endif %}
+              {% if po.status in 'ordered,partial' %}
+              <a href="{% url 'purchases:grn_create' po.pk %}" class="btn btn-sm btn-success">Receive</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="11" class="text-center text-muted" style="padding:40px;">
+            No purchase orders found.
+            <a href="{% url 'purchases:po_create' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Create First PO</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}&supplier={{ selected_supplier }}&q={{ query }}" class="page-link">&#8249;</a>
+    {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}<span class="page-link active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <a href="?page={{ num }}&status={{ selected_status }}&supplier={{ selected_supplier }}&q={{ query }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}&supplier={{ selected_supplier }}&q={{ query }}" class="page-link">&#8250;</a>
+    {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

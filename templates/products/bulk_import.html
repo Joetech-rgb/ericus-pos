@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import Products - Ericus POS{% endblock %}
+{% block page_title %}Bulk Import Products{% endblock %}
+
+{% block content %}
+
+<div style="max-width:640px;">
+
+  <!-- Back link -->
+  <div style="margin-bottom:16px;">
+    <a href="{% url 'product_list' %}" style="font-size:13px;font-family:'Times New Roman',serif;color:#4a6cf7;">
+      &larr; Back to Products
+    </a>
+  </div>
+
+  <!-- Instructions card -->
+  <div class="card mb-3">
+    <div class="card-head">
+      <h3>How to Import</h3>
+    </div>
+    <div style="padding:16px;font-family:'Times New Roman',serif;font-size:13px;color:var(--text2);line-height:1.8;">
+      <p style="margin-bottom:10px;">Upload an <strong>.xlsx</strong> file with the following columns in order (row 1 = headers, data starts at row 2):</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Column</th>
+              <th>Required</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>A</td><td>Name</td><td><span class="badge badge-danger">Yes</span></td><td>Samsung TV 43"</td></tr>
+            <tr><td>B</td><td>Category</td><td><span class="badge badge-danger">Yes</span></td><td>Electronics</td></tr>
+            <tr><td>C</td><td>Brand</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>Samsung</td></tr>
+            <tr><td>D</td><td>Model Number</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>UA43T5300</td></tr>
+            <tr><td>E</td><td>Barcode</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>8801643123456</td></tr>
+            <tr><td>F</td><td>SKU</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>SAM-TV-43</td></tr>
+            <tr><td>G</td><td>Cost Price</td><td><span class="badge badge-danger">Yes</span></td><td>1200.00</td></tr>
+            <tr><td>H</td><td>Selling Price</td><td><span class="badge badge-danger">Yes</span></td><td>1500.00</td></tr>
+            <tr><td>I</td><td>Wholesale Price</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>1350.00</td></tr>
+            <tr><td>J</td><td>Warranty (months)</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>12</td></tr>
+            <tr><td>K</td><td>Reorder Point</td><td><span class="badge" style="background:#6c757d;color:#fff;">No</span></td><td>5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px;color:var(--text3);">
+        If a product with the same name already exists it will be <strong>updated</strong>, not duplicated.
+        Categories are created automatically if they don't exist.
+      </p>
+    </div>
+  </div>
+
+  <!-- Upload form -->
+  <div class="card">
+    <div class="card-head">
+      <h3>Upload File</h3>
+    </div>
+    <div style="padding:20px;">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-family:'Times New Roman',serif;font-size:13px;color:#721c24;">
+          {% for field in form %}
+            {% for error in field.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">Excel File (.xlsx) *</label>
+          {{ form.file }}
+          <div style="font-size:11px;color:var(--text3);font-family:'Times New Roman',serif;margin-top:4px;">
+            Only .xlsx files are accepted. Maximum 5 MB.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button type="submit" class="btn btn-primary" id="importBtn">
+            Import Products
+          </button>
+          <a href="{% url 'product_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Download template -->
+  <div style="margin-top:14px;text-align:center;font-family:'Times New Roman',serif;font-size:12px;color:var(--text3);">
+    Need a template?
+    <a href="#" onclick="downloadTemplate(); return false;" style="color:#4a6cf7;">Download sample Excel file</a>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Disable button on submit to prevent double-submit
+document.querySelector('form').addEventListener('submit', function() {
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+});
+
+// Generate a sample xlsx in the browser using a data URI trick
+// (just a CSV download since we can't build xlsx client-side without a lib)
+function downloadTemplate() {
+  const headers = [
+    'Name', 'Category', 'Brand', 'Model Number', 'Barcode', 'SKU',
+    'Cost Price', 'Selling Price', 'Wholesale Price', 'Warranty (months)', 'Reorder Point'
+  ];
+  const sample = [
+    'Samsung TV 43"', 'Electronics', 'Samsung', 'UA43T5300', '8801643123456',
+    'SAM-TV-43', '1200.00', '1500.00', '1350.00', '12', '5'
+  ];
+
+  const csv = [headers.join(','), sample.join(',')].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'product_import_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

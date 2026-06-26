@@ -1,0 +1,926 @@
+﻿{% extends "base.html" %}
+{% block title %}POS - Ericus POS{% endblock %}
+{% block page_title %}Point of Sale{% endblock %}
+{% block nav_pos %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Executive View Layout Workspace */
+  .pos-wrap {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 0;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+    background: var(--page-bg);
+  }
+  .pos-left {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    gap: 16px;
+  }
+  .pos-right {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    overflow: hidden;
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.02);
+  }
+
+  /* Control Deck & Search Filters */
+  .pos-search-bar {
+    background: var(--card-bg);
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 1.5);
+    box-shadow: var(--shadow);
+  }
+  .pos-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: 'Times New Roman', serif;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--page-bg);
+    color: var(--text);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  .pos-search-input:focus {
+    border-color: #4a6cf7;
+    background: var(--card-bg);
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+  }
+  .select-deck {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--page-bg);
+    color: var(--text);
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    padding: 0 8px;
+    cursor: pointer;
+  }
+
+  /* Category Scrollbar Tabs */
+  .cat-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-family: 'Times New Roman', serif;
+    font-weight: bold;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .cat-tab:hover {
+    border-color: #4a6cf7;
+    color: #4a6cf7;
+  }
+  .cat-tab.active {
+    background: #4a6cf7;
+    color: #fff;
+    border-color: #4a6cf7;
+    box-shadow: 0 4px 12px rgba(74, 108, 247, 0.2);
+  }
+
+  /* Catalog Product Items Grid Layout */
+  .pos-products {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+  }
+  .product-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 1.5);
+    padding: 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow);
+  }
+  .product-card:hover {
+    transform: translateY(-2px);
+    border-color: #4a6cf7;
+    box-shadow: 0 8px 20px rgba(74,108,247,0.08);
+  }
+  .product-card.out-of-stock {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .p-name {
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+  .p-brand {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 12px;
+  }
+  .p-price {
+    font-size: 16px;
+    font-weight: 900;
+    color: #4a6cf7;
+    font-family: 'Times New Roman', serif;
+    margin-top: auto;
+  }
+  .p-stock {
+    font-size: 11px;
+    font-family: 'Times New Roman', serif;
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: bold;
+  }
+  .p-stock::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .p-stock.ok { color: #28a745; }
+  .p-stock.ok::before { background: #28a745; }
+  .p-stock.low { color: #b8860b; }
+  .p-stock.low::before { background: #ffc107; }
+  .p-stock.out { color: #dc3545; }
+  .p-stock.out::before { background: #dc3545; }
+  
+  .search-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--card-bg);
+  }
+
+  /* Right Column Financial Workspace Block */
+  .cart-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card-bg);
+  }
+  .cart-header h3 {
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+  }
+  .cart-customer {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--page-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .cart-item {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    transition: background 0.15s ease;
+  }
+  .cart-item:hover { background: rgba(74, 108, 247, 0.02); }
+  .ci-info { flex: 1; min-width: 0; }
+  .ci-name {
+    font-size: 13px;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    color: var(--text);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ci-serial {
+    font-size: 11px;
+    color: #4a6cf7;
+    font-family: 'Times New Roman', serif;
+    font-weight: bold;
+  }
+  .ci-price { font-size: 11px; color: var(--text3); font-family: 'Times New Roman', serif; }
+  
+  /* Precision Quantity Selectors */
+  .ci-qty { display: flex; align-items: center; background: var(--page-bg); border-radius: var(--radius); padding: 2px; width: fit-content; margin-top: 6px; }
+  .qty-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: var(--card-bg);
+    color: var(--text);
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.1s ease;
+  }
+  .qty-btn:hover { background: #4a6cf7; color: #fff; }
+  .qty-val { font-size: 13px; font-family: 'Times New Roman', serif; font-weight: bold; min-width: 32px; text-align: center; color: var(--text); }
+  .ci-subtotal { font-size: 14px; font-weight: bold; font-family: 'Times New Roman', serif; color: var(--text); }
+  .ci-remove {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.15s ease;
+  }
+  .ci-remove:hover { color: #dc3545; }
+  .cart-empty { text-align: center; padding: 60px 24px; color: var(--text3); font-family: 'Times New Roman', serif; font-size: 13px; }
+
+  /* Financial Summary Desk */
+  .cart-totals {
+    background: var(--page-bg);
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-family: 'Times New Roman', serif; color: var(--text2); }
+  .total-row.grand {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text);
+    padding-top: 12px;
+    margin-top: 6px;
+    border-top: 1px dashed var(--border);
+  }
+  .cart-actions { padding: 16px 24px 24px; border-top: 1px solid var(--border); background: var(--card-bg); display: flex; flex-direction: column; gap: 8px; }
+
+  /* Operational Panels */
+  .discount-bar { padding: 12px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: var(--card-bg); }
+  .discount-bar input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Times New Roman', serif;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--page-bg);
+    color: var(--text);
+    outline: none;
+  }
+  .discount-bar input:focus { border-color: #4a6cf7; background: var(--card-bg); }
+  .discount-applied { padding: 10px 24px; background: #e8f5e9; font-size: 12px; font-family: 'Times New Roman', serif; color: #2e7d32; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); font-weight: bold; }
+
+  /* Micro Interface Overlays */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 15, 26, 0.7); backdrop-filter: blur(4px); z-index: 500; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--card-bg); border-radius: calc(var(--radius) * 2); box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 100%; max-width: 500px; max-height: 85vh; overflow-y:auto; padding: 28px; border: 1px solid var(--border); }
+  .modal-title { font-size: 18px; font-weight: bold; font-family: 'Times New Roman', serif; color: var(--text); margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  .modal-close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text3); line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+
+  /* Secure Verification Core Terminal */
+  .pin-dots { display: flex; gap: 14px; justify-content: center; margin: 24px 0; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--page-bg); transition: all 0.1s ease; }
+  .pin-dot.filled { background: #4a6cf7; border-color: #4a6cf7; transform: scale(1.1); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 260px; margin: 0 auto; }
+  .pin-key { padding: 16px; font-size: 20px; font-family: 'Times New Roman', serif; font-weight: bold; border: 1px solid var(--border); border-radius: var(--radius); background: var(--page-bg); color: var(--text); cursor: pointer; text-align: center; box-shadow: var(--shadow); transition: all 0.1s ease; }
+  .pin-key:hover { background: #4a6cf7; color: #fff; border-color: #4a6cf7; }
+
+  /* Change calculator layout */
+  .change-display { background: var(--page-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 16px 0; text-align: center; }
+  .change-label { font-size: 12px; color: var(--text3); font-family: 'Times New Roman', serif; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .change-amount { font-size: 28px; font-weight: bold; font-family: 'Times New Roman', serif; color: #28a745; }
+
+  @media(max-width: 1024px) {
+    .pos-wrap { grid-template-columns: 1fr; height: auto; overflow: visible; }
+    .pos-left { height: 55vh; }
+    .pos-right { height: auto; border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-wrap" style="margin: -20px -24px;">
+
+  <!-- LEFT: Product Search & Grid Panel -->
+  <div class="pos-left">
+
+    <!-- Operational Control Deck -->
+    <div class="pos-search-bar">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <div style="flex: 1; position: relative;">
+          <input type="text" id="searchInput" class="pos-search-input" placeholder="Scan barcode or type name, brand, SKU..." autocomplete="off" autofocus>
+        </div>
+        <select id="saleTypeSelect" class="form-control select-deck" style="width: 140px; height: 45px; font-size: 13px;" onchange="setSaleType(this.value)">
+          <option value="retail">Retail Mode</option>
+          <option value="wholesale">Wholesale Mode</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Category Scrollbar Navigation -->
+    <div class="cat-tabs" id="catTabs">
+      <span class="cat-tab active" onclick="filterCat('', this)">All Categories</span>
+      {% for cat in categories %}
+      <span class="cat-tab" onclick="filterCat('{{ cat.id }}', this)">{{ cat.name }}</span>
+      {% endfor %}
+    </div>
+
+    <!-- Product Dynamic Collection Grid -->
+    <div class="pos-products">
+      <div class="product-grid" id="productGrid">
+        <div class="search-empty" id="searchHint" style="grid-column: 1 / -1;">
+          Start typing parameters or invoke terminal barcode scanning initialization.
+        </div>
+      </div>
+      <div id="searchLoader" style="display: none; text-align: center; padding: 30px; font-family: 'Times New Roman', serif; font-size: 14px; color: var(--text3);">
+        Querying backend infrastructure database...
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Structured Transaction Workspace -->
+  <div class="pos-right">
+
+    <!-- Workspace Header Block -->
+    <div class="cart-header">
+      <h3>Current Cart <span id="cartCountBadge" style="font-size: 12px; background: #4a6cf7; color: #fff; border-radius: 12px; padding: 2px 8px; margin-left: 6px; font-weight: bold;">{{ cart.item_count }}</span></h3>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-sm btn-outline" onclick="openCustomerModal()" style="padding: 6px 12px;">+ Assign Profile</button>
+        <button class="btn btn-sm btn-danger" onclick="clearCart()" id="clearCartBtn" style="padding: 6px 12px;">Reset</button>
+      </div>
+    </div>
+
+    <!-- Active Profile Bar -->
+    <div class="cart-customer">
+      <div>
+        <div style="font-size: 11px; color: var(--text3); font-family: 'Times New Roman', serif; text-transform: uppercase; letter-spacing: 0.5px;">Account Profile</div>
+        <div id="customerDisplay" style="font-size: 14px; font-family: 'Times New Roman', serif; color: var(--text); font-weight: bold; margin-top: 2px;">
+          {% if cart.customer %}{{ cart.customer }}{% else %}Walk-in Customer{% endif %}
+        </div>
+      </div>
+      <span class="badge badge-secondary" style="font-size: 10px;">Active Session</span>
+    </div>
+
+    <!-- Transaction Entry Items List -->
+    <div class="cart-items" id="cartItems">
+      {% if cart.items_json %}
+        {% for item in cart.items_json %}
+        <div class="cart-item" id="ci-{{ item.product_id }}-{{ item.product_unit_id|default:'0' }}">
+          <div class="ci-info">
+            <div class="ci-name">{{ item.product_name }}</div>
+            {% if item.serial_number %}<div class="ci-serial">S/N: {{ item.serial_number }}</div>{% endif %}
+            <div class="ci-price">GHS {{ item.unit_price }}</div>
+            <div class="ci-qty">
+              <button class="qty-btn" onclick="updateQty({{ item.product_id }}, {{ item.product_unit_id|default:'null' }}, -1)">-</button>
+              <span class="qty-val">{{ item.quantity }}</span>
+              <button class="qty-btn" onclick="updateQty({{ item.product_id }}, {{ item.product_unit_id|default:'null' }}, 1)">+</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+            <span class="ci-subtotal">GHS {{ item.subtotal }}</span>
+            <button class="ci-remove" onclick="removeItem({{ item.product_id }}, {{ item.product_unit_id|default:'null' }})" title="Remove">Ã—</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="cart-empty" id="cartEmptyMsg">Terminal order matrix empty. Allocate entries via search panel tools.</div>
+      {% endif %}
+    </div>
+
+    <!-- Operational Coupon Interface Area -->
+    <div class="discount-bar" id="discountBar">
+      <input type="text" id="discountInput" placeholder="Enter secure promotional or discount key..." maxlength="50">
+      <button class="btn btn-sm btn-outline" onclick="applyDiscount()" style="padding: 0 16px;">Apply</button>
+    </div>
+    <div class="discount-applied" id="discountApplied" style="display: {% if cart.discount_code %}flex{% else %}none{% endif %};">
+      <span>Key Applied: <strong style="text-transform: uppercase;">{{ cart.discount_code }}</strong> â€” GHS {{ cart.discount_amount }}</span>
+      <button style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px; font-weight: bold;" onclick="removeDiscount()">Revoke</button>
+    </div>
+
+    <!-- Auxiliary Infrastructure Fees Addons Panel -->
+    <div style="padding: 12px 24px; display: flex; gap: 12px; background: var(--card-bg); border-top: 1px solid var(--border);">
+      <div style="flex: 1;">
+        <div style="font-size: 11px; color: var(--text2); font-family: 'Times New Roman', serif; font-weight: bold; margin-bottom: 4px;">Logistics Installation Fee</div>
+        <input type="number" id="installFee" value="0" min="0" step="0.01" class="form-control" style="font-size: 13px; padding: 6px 10px;" oninput="updateAddons()">
+      </div>
+      <div style="flex: 1;">
+        <div style="font-size: 11px; color: var(--text2); font-family: 'Times New Roman', serif; font-weight: bold; margin-bottom: 4px;">Fulfillment Delivery Fee</div>
+        <input type="number" id="deliveryFee" value="0" min="0" step="0.01" class="form-control" style="font-size: 13px; padding: 6px 10px;" oninput="updateAddons()">
+      </div>
+    </div>
+
+    <!-- Financial Accounting Calculations Table Desk -->
+    <div class="cart-totals">
+      <div class="total-row"><span>Gross Subtotal</span><span id="subtotalDisplay">GHS {{ cart.subtotal }}</span></div>
+      <div class="total-row" id="discountRow" style="{% if not cart.discount_amount %}display: none;{% endif %} color: #28a745; font-weight: bold;">
+        <span>Adjusted Discount Deductions</span><span id="discountDisplay">- GHS {{ cart.discount_amount }}</span>
+      </div>
+      <div class="total-row" id="installRow" style="display: none;"><span>Allocated Installation</span><span id="installDisplay">GHS 0.00</span></div>
+      <div class="total-row" id="deliveryRow" style="display: none;"><span>Allocated Logistics Delivery</span><span id="deliveryDisplay">GHS 0.00</span></div>
+      <div class="total-row grand"><span>NET TOTAL DUE</span><span id="grandTotalDisplay">GHS {{ cart.total }}</span></div>
+    </div>
+
+    <!-- Checkout Action Deck Block -->
+    <div class="cart-actions">
+      <button class="btn btn-success w-full" style="font-size: 15px; padding: 14px; justify-content: center; box-shadow: 0 4px 12px rgba(40,167,69,0.15);" onclick="openCheckoutModal()" id="checkoutBtn">
+        Proceed to Secure Checkout Terminal
+      </button>
+      <a href="{% url 'sales:sale_list' %}" class="btn btn-outline w-full" style="font-size: 12px; padding: 8px; justify-content: center;">Audit &amp; Order Register History</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MODAL OVERLAY: CHECKOUT WORKSPACE TERMINAL ===== -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('checkoutModal')">Ã—</button>
+    <div class="modal-title">Fulfill &amp; Settle Transaction</div>
+
+    <div style="background: var(--page-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; text-align: center;">
+      <div style="font-size: 12px; color: var(--text3); font-family: 'Times New Roman', serif; text-transform: uppercase; letter-spacing: 0.5px;">Aggregated Accounting Balance Collectible</div>
+      <div style="font-size: 32px; font-weight: bold; font-family: 'Times New Roman', serif; color: #4a6cf7; margin-top: 4px;" id="modalTotal">GHS 0.00</div>
+    </div>
+
+    <form id="checkoutForm">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Payment Processing Protocol *</label>
+        <select name="payment_method" class="form-control" id="paymentMethod" onchange="onPaymentChange()" style="height: 40px;">
+          <option value="cash">Cash Ledger Settlement</option>
+          <option value="momo">Mobile Money Network (MoMo)</option>
+          <option value="split">Split Resource Configuration (Cash + MoMo)</option>
+          <option value="credit">Deferred Ledger Account Credit</option>
+        </select>
+      </div>
+
+      <!-- Cash Fieldsets Context -->
+      <div id="cashFields">
+        <div class="form-group">
+          <label class="form-label">Liquid Tendered Capital Assets (GHS)</label>
+          <input type="number" name="cash_tendered" id="cashTendered" class="form-control" min="0" step="0.01" placeholder="0.00" oninput="calcChange()">
+        </div>
+        <div class="change-display" id="changeDisplay">
+          <div class="change-label">Liquid Outflow Disbursable Change</div>
+          <div class="change-amount" id="changeAmount">GHS 0.00</div>
+        </div>
+      </div>
+
+      <!-- Mobile Money Fieldsets Context -->
+      <div id="momoFields" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Network Payment Processing Reference String</label>
+          <input type="text" name="momo_reference" class="form-control" placeholder="Transaction ID Hash or Reference Code">
+        </div>
+      </div>
+
+      <!-- Split Assets Fieldsets Context -->
+      <div id="splitFields" style="display: none;">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Cash Asset Share Allocation (GHS)</label>
+            <input type="number" name="split_cash" id="splitCash" class="form-control" min="0" step="0.01" placeholder="0.00" oninput="calcSplitMomo()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Money System Share Allocation (GHS)</label>
+            <input type="number" name="momo_amount" id="splitMomo" class="form-control" min="0" step="0.01" placeholder="0.00" readonly>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Money Validation Reference Verification</label>
+          <input type="text" name="momo_reference" class="form-control" placeholder="Network Authorization Token">
+        </div>
+      </div>
+
+      <!-- Deferred Ledger Account Credit Fieldsets Context -->
+      <div id="creditFields" style="display: none;">
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: #856404; font-family: 'Times New Roman', serif; font-weight: bold;">
+          Requires valid authenticated system profile assignation prior to record updates.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Debt Liquidation Maturity Due Date</label>
+          <input type="date" name="credit_due_date" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Internal Documentation Ledger Notes (Optional)</label>
+        <textarea name="notes" class="form-control" style="min-height: 60px; resize: none;" placeholder="Record internal operational comments here..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button type="button" class="btn btn-success w-full" style="font-size: 14px; padding: 12px; justify-content: center;" onclick="submitCheckout()" id="confirmSaleBtn">
+          Commit System Order Record
+        </button>
+        <button type="button" class="btn btn-outline" onclick="closeModal('checkoutModal')" style="padding: 12px 20px;">Abort</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== MODAL OVERLAY: PROFILE SELECTION INTERFACE ===== -->
+<div class="modal-overlay" id="customerModal">
+  <div class="modal-box" style="max-width: 440px;">
+    <button class="modal-close" onclick="closeModal('customerModal')">Ã—</button>
+    <div class="modal-title">Assign Client Profile Account</div>
+    <input type="text" id="customerSearch" class="form-control" placeholder="Query data streams via identifier or phone context..." oninput="searchCustomers()" style="margin-bottom: 14px; padding: 10px 14px;">
+    <div id="customerResults" style="max-height: 260px; overflow-y: auto; padding-right: 2px;"></div>
+    <hr class="divider">
+    <button class="btn btn-outline w-full" onclick="setCustomer(null, 'Walk-in Customer')" style="justify-content: center; margin-top: 10px;">Deallocate Account / Return Walk-In Default</button>
+  </div>
+</div>
+
+<!-- ===== MODAL OVERLAY: PRIVILEGED OWNER AUTHORIZATION CORE ===== -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal-box" style="max-width: 340px; text-align: center;">
+    <button class="modal-close" onclick="closeModal('pinModal')">Ã—</button>
+    <div class="modal-title">Privileged Token Authorization</div>
+    <div style="font-size: 13px; color: var(--text3); font-family: 'Times New Roman', serif; margin-bottom: 16px;">Owner credentials needed to modify core transaction rate attributes.</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      {% for n in "123456789" %}
+      <button class="pin-key" onclick="pinKey('{{ n }}')">{{ n }}</button>
+      {% endfor %}
+      <button class="pin-key" onclick="pinKey('0')" style="grid-column: 2;">0</button>
+      <button class="pin-key" onclick="pinClear()" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">C</button>
+    </div>
+    <div id="pinError" style="color: #dc3545; font-size: 13px; font-family: 'Times New Roman', serif; margin-top: 12px; font-weight: bold; display: none;"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// â”€â”€â”€ State Management Matrix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let cartTotal = {{ cart.total|default:0 }};
+let cartSubtotal = {{ cart.subtotal|default:0 }};
+let searchTimeout = null;
+let selectedCatId = '';
+let initialLoad = false;
+let currentSaleType = 'retail';
+let pinBuffer = '';
+let pendingDiscountCode = '';
+
+// Auto-load all products on page ready
+document.addEventListener('DOMContentLoaded', function() { doSearch(''); });
+
+// â”€â”€â”€ CSRF Token Extraction Token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function getCsrf() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// â”€â”€â”€ Product Querying Subsystems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+
+  document.getElementById('searchLoader').style.display = 'block';
+  searchTimeout = setTimeout(() => doSearch(q), 280);
+});
+
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    clearTimeout(searchTimeout);
+    doSearch(this.value.trim());
+  }
+});
+
+function doSearch(q) {
+  fetch(`{% url 'sales:product_search' %}?q=${encodeURIComponent(q)}&sale_type=${currentSaleType}&cat=${selectedCatId}`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('searchLoader').style.display = 'none';
+      renderProducts(data.results);
+    });
+}
+
+function filterCat(catId, el) {
+  selectedCatId = catId;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  doSearch(searchInput.value.trim());
+}
+
+function setSaleType(val) {
+  currentSaleType = val;
+  doSearch(searchInput.value.trim());
+}
+
+function renderProducts(products) {
+  const grid = document.getElementById('productGrid');
+  if (!products.length) {
+    grid.innerHTML = '<div class="search-empty" style="grid-column: 1/-1;">No products found matched within internal data arrays. Try broad query parameters.</div>';
+    return;
+  }
+  grid.innerHTML = products.map(p => {
+    const stockClass = p.stock <= 0 ? 'out' : p.stock <= 5 ? 'low' : 'ok';
+    const stockText = p.stock <= 0 ? 'Out of Stock' : `${p.stock} Units Available`;
+    const disabled = p.stock <= 0 ? 'out-of-stock' : '';
+    return `
+      <div class="product-card ${disabled}" onclick="${p.stock > 0 ? `addProduct(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.price}, ${p.cost_price}, ${p.has_serial})` : 'void(0)'}">
+        <div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-brand">${p.brand ? p.brand + (p.model ? ' Â· ' + p.model : '') : (p.model || '')}</div>
+        </div>
+        <div>
+          <div class="p-price">GHS ${p.price.toFixed(2)}</div>
+          <div class="p-stock ${stockClass}">${stockText}</div>
+          ${p.sku ? `<div style="font-size: 10px; color: var(--text3); font-family: 'Times New Roman', serif; margin-top: 4px; font-weight: bold;">SKU: ${p.sku}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// â”€â”€â”€ Order Stream Pipeline Allocations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function addProduct(productId, name, price, costPrice, hasSerial) {
+  fetch("{% url 'sales:cart_add' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: `product_id=${productId}&quantity=1&unit_price=${price}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      refreshCart();
+    } else {
+      alert(data.error || 'System failed to insert array block node.');
+    }
+  });
+}
+
+// â”€â”€â”€ Matrix Stream Update Interactivity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function updateQty(productId, unitId, delta) {
+  fetch("{% url 'sales:cart_state' %}")
+    .then(r => r.json())
+    .then(cart => {
+      const item = cart.items.find(i => i.product_id === productId && (i.product_unit_id || null) === unitId);
+      if (!item) return;
+      const newQty = item.quantity + delta;
+      fetch("{% url 'sales:cart_update' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+        body: `product_id=${productId}&quantity=${newQty}${unitId ? '&product_unit_id=' + unitId : ''}`
+      }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
+    });
+}
+
+function removeItem(productId, unitId) {
+  fetch("{% url 'sales:cart_remove' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: `product_id=${productId}${unitId ? '&product_unit_id=' + unitId : ''}`
+  }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
+}
+
+function clearCart() {
+  if (!confirm('Purge total transaction data values completely?')) return;
+  fetch("{% url 'sales:cart_clear' %}", {
+    method: 'POST',
+    headers: {'X-CSRFToken': getCsrf()}
+  }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
+}
+
+function refreshCart() {
+  fetch("{% url 'sales:cart_state' %}")
+    .then(r => r.json())
+    .then(cart => {
+      cartTotal = cart.total;
+      cartSubtotal = cart.subtotal;
+
+      document.getElementById('cartCountBadge').textContent = cart.item_count;
+      document.getElementById('subtotalDisplay').textContent = 'GHS ' + cart.subtotal.toFixed(2);
+      document.getElementById('grandTotalDisplay').textContent = 'GHS ' + cart.total.toFixed(2);
+      document.getElementById('modalTotal').textContent = 'GHS ' + cart.total.toFixed(2);
+
+      if (cart.discount_amount > 0) {
+        document.getElementById('discountRow').style.display = 'flex';
+        document.getElementById('discountDisplay').textContent = '- GHS ' + cart.discount_amount.toFixed(2);
+        document.getElementById('discountApplied').style.display = 'flex';
+      } else {
+        document.getElementById('discountRow').style.display = 'none';
+        document.getElementById('discountApplied').style.display = 'none';
+      }
+
+      const container = document.getElementById('cartItems');
+      if (!cart.items.length) {
+        container.innerHTML = '<div class="cart-empty" id="cartEmptyMsg">Terminal order matrix empty. Allocate entries via search panel tools.</div>';
+        return;
+      }
+      container.innerHTML = cart.items.map(item => `
+        <div class="cart-item">
+          <div class="ci-info">
+            <div class="ci-name">${item.product_name}</div>
+            ${item.serial_number ? `<div class="ci-serial">S/N: ${item.serial_number}</div>` : ''}
+            <div class="ci-price">GHS ${parseFloat(item.unit_price).toFixed(2)}</div>
+            <div class="ci-qty">
+              <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, -1)">-</button>
+              <span class="qty-val">${item.quantity}</span>
+              <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, 1)">+</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+            <span class="ci-subtotal">GHS ${parseFloat(item.subtotal).toFixed(2)}</span>
+            <button class="ci-remove" onclick="removeItem(${item.product_id}, ${item.product_unit_id || null})">Ã—</button>
+          </div>
+        </div>`).join('');
+    });
+}
+
+// â”€â”€â”€ Financial Variable Logistics Addons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function updateAddons() {
+  const install = parseFloat(document.getElementById('installFee').value) || 0;
+  const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
+  
+  if (install > 0) { 
+    document.getElementById('installRow').style.display = 'flex'; 
+    document.getElementById('installDisplay').textContent = 'GHS ' + install.toFixed(2); 
+  } else {
+    document.getElementById('installRow').style.display = 'none';
+  }
+  
+  if (delivery > 0) { 
+    document.getElementById('deliveryRow').style.display = 'flex'; 
+    document.getElementById('deliveryDisplay').textContent = 'GHS ' + delivery.toFixed(2); 
+  } else {
+    document.getElementById('deliveryRow').style.display = 'none';
+  }
+  
+  const newTotal = cartSubtotal + install + delivery;
+  document.getElementById('grandTotalDisplay').textContent = 'GHS ' + newTotal.toFixed(2);
+  document.getElementById('modalTotal').textContent = 'GHS ' + newTotal.toFixed(2);
+}
+
+// â”€â”€â”€ Promotional Deductions Protocols â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function applyDiscount() {
+  const code = document.getElementById('discountInput').value.trim();
+  if (!code) return;
+  pendingDiscountCode = code;
+  fetch("{% url 'sales:apply_discount' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: `code=${encodeURIComponent(code)}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      if (data.requires_pin) { openPinModal(); return; }
+      refreshCart();
+      document.getElementById('discountInput').value = '';
+    } else {
+      alert(data.error || 'Invalid discount hash key authorization failed.');
+    }
+  });
+}
+
+function removeDiscount() {
+  fetch("{% url 'sales:remove_discount' %}", {
+    method: 'POST',
+    headers: {'X-CSRFToken': getCsrf()}
+  }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
+}
+
+// â”€â”€â”€ Settlement Engine Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function openCheckoutModal() {
+  if (parseInt(document.getElementById('cartCountBadge').textContent) === 0) {
+    alert('Matrix array empty. Cannot process empty ledger.'); return;
+  }
+  document.getElementById('modalTotal').textContent = document.getElementById('grandTotalDisplay').textContent;
+  openModal('checkoutModal');
+  calcChange();
+}
+
+function onPaymentChange() {
+  const method = document.getElementById('paymentMethod').value;
+  document.getElementById('cashFields').style.display = method === 'cash' ? 'block' : 'none';
+  document.getElementById('momoFields').style.display = method === 'momo' ? 'block' : 'none';
+  document.getElementById('splitFields').style.display = method === 'split' ? 'block' : 'none';
+  document.getElementById('creditFields').style.display = method === 'credit' ? 'block' : 'none';
+}
+
+function calcChange() {
+  const total = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('GHS ', '')) || 0;
+  const tendered = parseFloat(document.getElementById('cashTendered').value) || 0;
+  const change = Math.max(0, tendered - total);
+  document.getElementById('changeAmount').textContent = 'GHS ' + change.toFixed(2);
+  document.getElementById('changeAmount').style.color = tendered >= total ? '#28a745' : '#dc3545';
+}
+
+function calcSplitMomo() {
+  const total = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('GHS ', '')) || 0;
+  const cash = parseFloat(document.getElementById('splitCash').value) || 0;
+  const momo = Math.max(0, total - cash);
+  document.getElementById('splitMomo').value = momo.toFixed(2);
+}
+
+function submitCheckout() {
+  const btn = document.getElementById('confirmSaleBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing Transaction Protocol...';
+
+  const method = document.getElementById('paymentMethod').value;
+  const form = document.getElementById('checkoutForm');
+  const data = new FormData(form);
+
+  if (method === 'cash') {
+    const cashInput = document.getElementById('cashTendered');
+    if (!cashInput.value) cashInput.value = cartTotal.toFixed(2);
+    data.set('cash_tendered', cashInput.value);
+  } else if (method === 'split') {
+    data.set('cash_tendered', document.getElementById('splitCash').value || '0');
+  } else {
+    data.set('cash_tendered', '0');
+  }
+
+  data.set('sale_type', currentSaleType);
+  data.set('installation_fee', document.getElementById('installFee').value || '0');
+  data.set('delivery_fee', document.getElementById('deliveryFee').value || '0');
+
+  fetch("{% url 'sales:checkout' %}", {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf()},
+    body: data
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.ok) {
+       location.reload();
+    } else {
+       alert(result.error || 'Ledger pipeline settlement injection failed.');
+       btn.disabled = false;
+       btn.textContent = 'Commit System Order Record';
+    }
+  }).catch(() => {
+     btn.disabled = false;
+     btn.textContent = 'Commit System Order Record';
+  });
+}
+
+// â”€â”€â”€ Global Interface View Orchestrations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+</script>
+{% endblock %}
+
+

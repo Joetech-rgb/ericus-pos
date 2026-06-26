@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Ericus POS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'category_list' %}" class="btn btn-outline btn-sm">&#8592; Back to Categories</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:520px;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="card">
+      <div class="card-head"><h3>Category Details</h3></div>
+      <div class="card-body">
+
+        <div class="form-group">
+          <label class="form-label">Category Name *</label>
+          <input type="text" name="name" value="{{ form.name.value|default:'' }}" class="form-control" placeholder="e.g. Refrigerators, Televisions, Phones" required autofocus>
+          {% if form.name.errors %}<ul class="errorlist">{% for e in form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon (emoji)</label>
+          <input type="text" name="icon" value="{{ form.icon.value|default:'' }}" class="form-control" placeholder="e.g. 📱 🖥️ ❄️" maxlength="10">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Paste an emoji to represent this category.</div>
+          {% if form.icon.errors %}<ul class="errorlist">{% for e in form.icon.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" placeholder="Optional description..." style="min-height:80px;">{{ form.description.value|default:'' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="is_active" {% if form.is_active.value or not form.instance.pk %}checked{% endif %} style="width:16px;height:16px;">
+            <span class="form-label" style="margin-bottom:0;">Category is Active</span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button type="submit" class="btn btn-primary" style="flex:1;">Save Category</button>
+      <a href="{% url 'category_list' %}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

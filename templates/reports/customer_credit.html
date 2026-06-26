@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Customer Credit - Ericus POS{% endblock %}
+{% block page_title %}Customer Credit Report{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="?format=csv" class="btn btn-sm btn-outline">↓ CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Customer Credit Report</h1>
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline">← Reports</a>
+</div>
+
+<div class="stats-row" style="margin-bottom:18px;">
+  <div class="stat-box">
+    <div class="s-label">Customers with Balance</div>
+    <div class="s-value">{{ data.total_customers_with_credit }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="s-label">Total Outstanding</div>
+    <div class="s-value" style="color:#dc3545;">GHS {{ data.total_outstanding }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Outstanding Credit Balances</h3>
+    <a href="?format=csv" class="btn btn-sm btn-outline">↓ CSV</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Type</th>
+          <th class="text-right">Credit Balance (GHS)</th>
+          <th class="text-right">Credit Limit (GHS)</th>
+          <th class="text-right">Utilisation</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in data.customers %}
+        <tr>
+          <td style="color:var(--text3);">{{ forloop.counter }}</td>
+          <td style="font-weight:bold;">{{ c.full_name }}</td>
+          <td>{{ c.phone }}</td>
+          <td><span class="badge badge-{% if c.customer_type == 'wholesale' %}primary{% else %}secondary{% endif %}">{{ c.customer_type|title }}</span></td>
+          <td class="text-right" style="font-weight:bold;color:#dc3545;">{{ c.credit_balance }}</td>
+          <td class="text-right" style="color:var(--text2);">{{ c.credit_limit }}</td>
+          <td class="text-right">
+            {% if c.credit_limit > 0 %}
+            {% widthratio c.credit_balance c.credit_limit 100 %}%
+            {% else %}—{% endif %}
+          </td>
+          <td><a href="{% url 'customers:detail' c.id %}" class="btn btn-sm btn-outline">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">No customers with outstanding credit.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if data.customers %}
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);">
+          <td colspan="4" style="padding:10px 14px;font-weight:bold;text-align:right;">Total Outstanding</td>
+          <td style="padding:10px 14px;font-weight:bold;text-align:right;color:#dc3545;">GHS {{ data.total_outstanding }}</td>
+          <td colspan="3"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
