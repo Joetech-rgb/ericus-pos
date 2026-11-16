@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Move to Floor Display - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Move to Floor Display{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'inventory:stock_detail' product_pk=unit.product.pk %}" class="btn btn-outline btn-sm">&#8592; Back</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+  <div class="card">
+    <div class="card-head"><h3>{{ unit.product.name }}</h3></div>
+    <div class="card-body">
+      <p>Serial number: <strong>{{ unit.serial_number }}</strong></p>
+      <p style="color:#666;">This unit will be taken out of sellable stock and put on floor display.</p>
+      <form method="post" id="demo-form">
+        {% csrf_token %}
+        {{ form.product_unit_id }}
+        <div class="form-group">
+          <label class="form-label">{{ form.condition_notes.label }}</label>
+          {{ form.condition_notes }}
+          {% if form.condition_notes.errors %}<ul class="errorlist">{% for e in form.condition_notes.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Move to Display</button>
+        <a href="{% url 'inventory:stock_detail' product_pk=unit.product.pk %}" class="btn btn-outline">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

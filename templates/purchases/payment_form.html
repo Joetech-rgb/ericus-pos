@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Record Payment - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
+{% block nav_purchasesmgmt %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'purchases:po_detail' pk=po.pk %}" class="btn btn-outline btn-sm">&#8592; Back to PO</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+  <div class="card">
+    <div class="card-head"><h3>Payment for PO {{ po.po_number }}</h3></div>
+    <div class="card-body">
+      <p>Amount still due: <strong>GH&#8373;{{ po.amount_due }}</strong></p>
+      <form method="post" id="pay-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Amount paid so far *</label>
+            {{ form.amount_paid }}
+            {% if form.amount_paid.errors %}<ul class="errorlist">{% for e in form.amount_paid.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Payment method *</label>
+            {{ form.payment_method }}
+            {% if form.payment_method.errors %}<ul class="errorlist">{% for e in form.payment_method.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reference</label>
+          {{ form.payment_reference }}
+          {% if form.payment_reference.errors %}<ul class="errorlist">{% for e in form.payment_reference.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save Payment</button>
+        <a href="{% url 'purchases:po_detail' pk=po.pk %}" class="btn btn-outline">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('#pay-form input:not([type=hidden]), #pay-form select, #demo-form textarea').forEach(function (el) { el.classList.add('form-control'); });
+</script>
+{% endblock %}

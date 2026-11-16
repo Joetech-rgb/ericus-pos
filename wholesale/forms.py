@@ -1,4 +1,4 @@
-from django import forms
+﻿from django import forms
 from .models import WholesaleOrder, WholesaleOrderItem
 from products.models import Product
 
@@ -25,7 +25,7 @@ class WholesaleOrderForm(forms.ModelForm):
         from customers.models import Customer
         self.fields['customer'].queryset = Customer.objects.filter(
             customer_type='wholesale', is_active=True
-        ).order_by('name')
+        ).order_by('full_name')
         self.fields['delivery_date'].required = False
         self.fields['delivery_address'].required = False
         self.fields['payment_method'].required = False

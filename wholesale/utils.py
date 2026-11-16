@@ -1,4 +1,4 @@
-from django.db.models import Sum, Count
+﻿from django.db.models import Sum, Count
 from datetime import date
 
 
@@ -40,7 +40,7 @@ def get_top_wholesale_customers(limit=10):
     return WholesaleOrder.objects.filter(
         status='delivered'
     ).values(
-        'customer__id', 'customer__name', 'customer__phone'
+        'customer__id', 'customer__full_name', 'customer__phone'
     ).annotate(
         order_count=Count('id'),
         total_spent=Sum('grand_total'),
@@ -72,6 +72,6 @@ def process_wholesale_delivery(order, user):
 
         log_wholesale(
             user,
-            f"Delivered wholesale order {order.order_number} to {order.customer.name}",
+            f"Delivered wholesale order {order.order_number} to {order.customer.full_name}",
             obj=order,
         )

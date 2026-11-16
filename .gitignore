@@ -35,3 +35,6 @@ offline_packages_patch/
 ericus_update/
 venv/
 __pycache__/
+
+crawl_check.py
+audit_copy.sqlite3
