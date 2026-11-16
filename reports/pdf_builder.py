@@ -23,9 +23,9 @@ def _get_shop_name():
     try:
         from accounts.utils import get_shop
         shop = get_shop()
-        return shop.name if shop else "Ericus Electrical & Home Appliances"
+        return shop.name if shop else "Adjei’s God First Ventures"
     except Exception:
-        return "Ericus Electrical & Home Appliances"
+        return "Adjei’s God First Ventures"
 
 
 def _base_styles():
@@ -131,7 +131,7 @@ def build_sales_summary_pdf(data):
 
     # Summary cards
     elements.append(Paragraph('Summary', styles['SectionHeader']))
-    ghs = lambda v: f"GH₵ {v:,.2f}"
+    ghs = lambda v: f"GHS {v:,.2f}"
     summary_pairs = [
         ('Total Transactions', str(data['total_transactions'])),
         ('Gross Revenue', ghs(data['gross_revenue'])),
@@ -144,7 +144,7 @@ def build_sales_summary_pdf(data):
     # Daily breakdown table
     if data.get('daily_breakdown'):
         elements.append(Paragraph('Daily Breakdown', styles['SectionHeader']))
-        headers = ['Date', 'Transactions', 'Revenue (GH₵)']
+        headers = ['Date', 'Transactions', 'Revenue (GHS)']
         rows = [headers]
         for row in data['daily_breakdown']:
             rows.append([
@@ -170,16 +170,16 @@ def build_profit_loss_pdf(data):
                              topMargin=1.5*cm, bottomMargin=1.5*cm)
     styles = _base_styles()
     elements = _header_elements(styles, 'Profit & Loss Report', data['date_from'], data['date_to'])
-    ghs = lambda v: f"GH₵ {v:,.2f}"
+    ghs = lambda v: f"GHS {v:,.2f}"
 
     rows = [
         ['Revenue', ghs(data['revenue'])],
-        ['Discounts Given', f"(GH₵ {data['discounts_given']:,.2f})"],
+        ['Discounts Given', f"(GHS {data['discounts_given']:,.2f})"],
         ['Net Revenue', ghs(data['net_revenue'])],
-        ['Cost of Goods Sold (COGS)', f"(GH₵ {data['cogs']:,.2f})"],
+        ['Cost of Goods Sold (COGS)', f"(GHS {data['cogs']:,.2f})"],
         ['Gross Profit', ghs(data['gross_profit'])],
         ['Gross Margin', f"{data['gross_margin_pct']}%"],
-        ['Operating Expenses', f"(GH₵ {data['operating_expenses']:,.2f})"],
+        ['Operating Expenses', f"(GHS {data['operating_expenses']:,.2f})"],
         ['Net Profit', ghs(data['net_profit'])],
         ['Net Margin', f"{data['net_margin_pct']}%"],
     ]
@@ -213,13 +213,13 @@ def build_inventory_pdf(data):
     elements = _header_elements(styles, 'Inventory Status Report')
 
     elements.append(Paragraph(
-        f"Total Stock Value: GH₵ {data['total_value']:,.2f} | "
+        f"Total Stock Value: GHS {data['total_value']:,.2f} | "
         f"Low Stock Items: {data['low_stock_count']}",
         styles['SubTitle']
     ))
     elements.append(Spacer(1, 0.3 * cm))
 
-    headers = ['Product', 'Category', 'In Stock', 'Reorder Point', 'Status', 'Stock Value (GH₵)']
+    headers = ['Product', 'Category', 'In Stock', 'Reorder Point', 'Status', 'Stock Value (GHS)']
     rows = [headers]
     for row in data['rows']:
         p = row['product']

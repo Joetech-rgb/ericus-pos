@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}Reports - Ericus POS{% endblock %}
+{% block title %}Reports - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}Reports &amp; Analytics{% endblock %}
 {% block nav_reports %}active{% endblock %}
 
@@ -282,15 +282,15 @@
 {% block content %}
 <div class="page-header" style="margin-bottom: 24px;">
   <div>
-    <h1 style="font-size: 1.45rem; font-weight: 700; margin: 0 0 4px 0;">Reports &amp; Analytics Hub</h1>
-    <span class="text-muted text-sm" style="font-size: 0.82rem; color: var(--text3, #64748b);">Data Synchronized: {{ today|date:"d F Y" }}</span>
+    <h1 style="font-size: 1.45rem; font-weight: 700; margin: 0 0 4px 0;">Reports</h1>
+    <span class="text-muted text-sm" style="font-size: 0.82rem; color: var(--text3, #64748b);">Today: {{ today|date:"d F Y" }}</span>
   </div>
 </div>
 
 <!-- Global Operational Interval Selectors Form -->
 <form method="get" id="filterForm">
   <div class="filter-bar">
-    <span class="filter-label">Interval Preset:</span>
+    <span class="filter-label">Show:</span>
 
     <a href="?preset=today&date_from=&date_to=" class="quick-btn {% if preset == 'today' %}active{% endif %}">Today</a>
     <a href="?preset=yesterday&date_from=&date_to=" class="quick-btn {% if preset == 'yesterday' %}active{% endif %}">Yesterday</a>
@@ -305,7 +305,7 @@
       <input type="date" name="date_from" id="date_from" value="{{ date_from }}" max="{{ today|date:'Y-m-d' }}">
       <span style="font-size: 0.78rem; color: var(--text3, #64748b);">to</span>
       <input type="date" name="date_to" id="date_to" value="{{ date_to }}" max="{{ today|date:'Y-m-d' }}">
-      <button type="submit" class="apply-btn">Apply Range</button>
+      <button type="submit" class="apply-btn">Show</button>
     </div>
   </div>
 </form>
@@ -313,34 +313,34 @@
 <!-- Highlight Core Metrics Architecture Matrix -->
 <div class="summary-grid">
   <div class="metric-card">
-    <span class="metric-label">Gross Revenue</span>
+    <span class="metric-label">Total Sales</span>
     <span class="metric-value">GH₵ {{ pl.revenue|default:"0.00" }}</span>
     <span class="metric-sub">{{ date_from }} &ndash; {{ date_to }}</span>
   </div>
 
   <div class="metric-card">
-    <span class="metric-label">Gross Operational Profit</span>
+    <span class="metric-label">Profit</span>
     <span class="metric-value">GH₵ {{ pl.gross_profit|default:"0.00" }}</span>
-    <span class="metric-sub">Margin Yield:
+    <span class="metric-sub">Profit %:
       <strong style="color: #4a6cf7;">{{ pl.gross_margin_pct|default:"0" }}%</strong>
     </span>
   </div>
 
   <div class="metric-card">
-    <span class="metric-label">Net Cleared Yield</span>
+    <span class="metric-label">Profit after expenses</span>
     <span class="metric-value" style="color: {% if pl.net_profit and pl.net_profit > 0 %}#1a7a3f{% else %}#ef4444{% endif %};">
       GH₵ {{ pl.net_profit|default:"0.00" }}
     </span>
-    <span class="metric-sub">Adjusted amortization</span>
+    <span class="metric-sub">after expenses are taken off</span>
   </div>
 
   <div class="metric-card">
-    <span class="metric-label">Low Stock Depletions</span>
+    <span class="metric-label">Low Stock Items</span>
     <span class="metric-value" style="color: {% if inv.low_stock_count > 0 %}#ef4444{% else %}#1a7a3f{% endif %};">
       {{ inv.low_stock_count|default:"0" }}
     </span>
     <span class="metric-sub">
-      <a href="{% url 'product_list' %}?low_stock_only=1">Restock Operations &rarr;</a>
+      <a href="{% url 'product_list' %}?low_stock_only=1">See what to restock &rarr;</a>
     </span>
   </div>
 </div>
@@ -348,7 +348,7 @@
 <!-- Performance Visualization Area -->
 <div class="chart-row">
   <div class="card">
-    <div class="card-header-split"><h3>Net Profit Performance Line (6-Month Horizon)</h3></div>
+    <div class="card-header-split"><h3>Profit - last 6 months</h3></div>
     <div class="card-body" style="padding: 16px;">
       <canvas id="profitChart" height="190"></canvas>
     </div>
@@ -356,7 +356,7 @@
 
   <div class="card">
     <div class="card-header-split">
-      <h3>Clearing Settlement Channels</h3>
+      <h3>How customers paid</h3>
       <span class="period-badge">{{ date_from }} &ndash; {{ date_to }}</span>
     </div>
     <div class="card-body" style="padding: 16px;">
@@ -368,18 +368,18 @@
 <!-- Ledger Log Runout Matrices -->
 <div class="daily-table-wrap card">
   <div class="card-header-split">
-    <h3>Daily Operational Velocity</h3>
+    <h3>Sales by day</h3>
     <span class="period-badge">{{ date_from }} &ndash; {{ date_to }}</span>
   </div>
   <div class="card-body table-responsive" style="padding: 0;">
     <table class="daily-table">
       <thead>
         <tr>
-          <th>Business Date</th>
-          <th class="tnum">Transactions handled</th>
-          <th class="tnum">Gross Revenue</th>
-          <th class="tnum">Average Receipt Ticket</th>
-          <th style="padding-left: 24px;">Terminal Status</th>
+          <th>Date</th>
+          <th class="tnum">Sales made</th>
+          <th class="tnum">Total sales</th>
+          <th class="tnum">Average sale</th>
+          <th style="padding-left: 24px;">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -398,16 +398,16 @@
             </td>
             <td style="padding-left: 24px;">
               {% if row.revenue and row.revenue > 0 %}
-                <span class="badge-ok">Active Matrix</span>
+                <span class="badge-ok">Sold</span>
               {% else %}
-                <span class="badge-low">Zero Footprint</span>
+                <span class="badge-low">No sales</span>
               {% endif %}
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr class="empty-row">
-            <td colspan="5">No operational events logs captured within selected parameters.</td>
+            <td colspan="5">No sales in this period.</td>
           </tr>
         {% endif %}
       </tbody>
@@ -419,26 +419,26 @@
 <div class="report-grid">
 
   <div class="card">
-    <div class="card-header-split"><h3>Sales Records</h3></div>
+    <div class="card-header-split"><h3>Sales</h3></div>
     <div class="report-card-body">
       <a href="{% url 'reports:sales_summary' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Sales Consolidation Ledgers</div>
-          <div class="report-link-desc">Daily clearings logs, throughput velocity, and runout performance indices.</div>
+          <div class="report-link-title">Sales summary</div>
+          <div class="report-link-desc">Sales for each day.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:sales_by_product' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Itemized Product Distribution</div>
-          <div class="report-link-desc">High velocity item analysis, inventory quantities, and margins per SKU line.</div>
+          <div class="report-link-title">Sales by product</div>
+          <div class="report-link-desc">Which items sell best and what profit they give.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:sales_by_attendant' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Operator Performance Logs</div>
-          <div class="report-link-desc">Throughput yields generated by active terminal profiles.</div>
+          <div class="report-link-title">Sales by cashier</div>
+          <div class="report-link-desc">How much each cashier sold.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
@@ -446,26 +446,26 @@
   </div>
 
   <div class="card">
-    <div class="card-header-split"><h3>Financial Clearing</h3></div>
+    <div class="card-header-split"><h3>Money</h3></div>
     <div class="report-card-body">
       <a href="{% url 'reports:profit_loss' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Profit &amp; Loss Balanced Matrix</div>
-          <div class="report-link-desc">Comprehensive reconciliation balancing sales yield, operational expenditure, and COGS lines.</div>
+          <div class="report-link-title">Profit and Loss</div>
+          <div class="report-link-desc">Sales, cost of goods and expenses, and what is left.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:expense_summary' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Operational Expenditures</div>
-          <div class="report-link-desc">Disbursements records structured across enterprise operations categories.</div>
+          <div class="report-link-title">Expenses</div>
+          <div class="report-link-desc">Money spent on the shop, by type.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:customer_credit' %}" class="report-link">
         <div>
-          <div class="report-link-title">Deferred Debt Line Balancing</div>
-          <div class="report-link-desc">Outstanding risk profiles, client obligations, and overdue limits.</div>
+          <div class="report-link-title">Customers who owe you</div>
+          <div class="report-link-desc">Who owes you money and how much.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
@@ -473,26 +473,26 @@
   </div>
 
   <div class="card">
-    <div class="card-header-split"><h3>Inventory Logistics</h3></div>
+    <div class="card-header-split"><h3>Stock and buying</h3></div>
     <div class="report-card-body">
       <a href="{% url 'product_list' %}" class="report-link">
         <div>
-          <div class="report-link-title">Real-Time Asset Valuation</div>
-          <div class="report-link-desc">Stock evaluations, critical threshold parameters, and capital value logs.</div>
+          <div class="report-link-title">Stock list</div>
+          <div class="report-link-desc">All products and how many are left.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:purchase_summary' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Procurement &amp; Inbound Pipeline</div>
-          <div class="report-link-desc">Supplier restock entries, supply logs, and active inbound orders.</div>
+          <div class="report-link-title">Purchases from suppliers</div>
+          <div class="report-link-desc">What you bought from suppliers.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
       <a href="{% url 'reports:returns_summary' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Reverse Logistics Invalidation</div>
-          <div class="report-link-desc">Discredited transactions tracking returned inventory items by fault key.</div>
+          <div class="report-link-title">Returned items</div>
+          <div class="report-link-desc">Items customers brought back.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>
@@ -500,12 +500,12 @@
   </div>
 
   <div class="card">
-    <div class="card-header-split"><h3>Workforce Audits</h3></div>
+    <div class="card-header-split"><h3>Staff</h3></div>
     <div class="report-card-body">
       <a href="{% url 'reports:attendant_performance' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="report-link">
         <div>
-          <div class="report-link-title">Terminal Shift Efficiency</div>
-          <div class="report-link-desc">Hourly transaction density metrics and sales ticket volumes per user registration.</div>
+          <div class="report-link-title">Cashier performance</div>
+          <div class="report-link-desc">Sales made by each cashier.</div>
         </div>
         <span class="report-arrow">&rarr;</span>
       </a>

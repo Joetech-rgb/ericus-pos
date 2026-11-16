@@ -109,15 +109,95 @@ def register_shop(request):
 # ─── PIN Verify ───────────────────────────────────────────────────────────────
 
 @login_required
+@owner_required
+def shop_settings(request):
+    """Owner edits the shop name, address, phone and receipt message."""
+    shop = ShopProfile.objects.filter(owner=request.user).first()
+    if request.method == 'POST':
+        if shop is None:
+            shop = ShopProfile(owner=request.user)
+        shop.name = request.POST.get('name', '').strip() or 'Adjei’s God First Ventures'
+        shop.tagline = request.POST.get('tagline', '').strip()[:200]
+        shop.address = request.POST.get('address', '').strip()
+        shop.phone = request.POST.get('phone', '').strip()[:20]
+        shop.whatsapp = request.POST.get('whatsapp', '').strip()[:20]
+        shop.email = request.POST.get('email', '').strip()
+        shop.receipt_footer = request.POST.get('receipt_footer', '').strip()[:200]
+        if request.FILES.get('logo'):
+            shop.logo = request.FILES['logo']
+        shop.save()
+        messages.success(request, 'Shop details saved. New receipts will show them.')
+        return redirect('shop_settings')
+    return render(request, 'accounts/shop_settings.html', {'shop': shop})
+
+
+def forgot_password(request):
+    """Public page: reset a password with the OWNER PIN (works offline, no email needed)."""
+    from django.contrib.auth.password_validation import validate_password
+    from django.core.exceptions import ValidationError
+
+    context = {'username': request.GET.get('username', '')}
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        pin = request.POST.get('pin', '').strip()
+        new1 = request.POST.get('new_password', '')
+        new2 = request.POST.get('confirm_password', '')
+        context['username'] = username
+
+        owner = User.objects.filter(role='owner').order_by('id').first()
+        try:
+            owner_pin = owner.pin
+        except Exception:
+            owner_pin = None
+
+        if owner_pin is None:
+            context['error'] = 'The owner PIN has not been set up yet. Please ask your developer.'
+        elif owner_pin.is_locked:
+            context['error'] = 'Too many wrong tries. Please wait 30 minutes and try again.'
+        elif not check_password(pin, owner_pin.pin_hash):
+            owner_pin.increment_attempts()
+            FailedPINAttempt.objects.create(
+                user=owner, action_attempted='forgot_password', ip_address=get_client_ip(request))
+            if owner_pin.is_locked:
+                context['error'] = 'Too many wrong tries. Please wait 30 minutes.'
+            else:
+                context['error'] = 'The owner PIN is not right. %s try(ies) left.' % max(0, 3 - owner_pin.attempts)
+        else:
+            target = User.objects.filter(username__iexact=username).first() if username else None
+            if target is None:
+                context['error'] = 'There is no user with that username.'
+            elif new1 != new2:
+                context['error'] = 'The two passwords are not the same.'
+            else:
+                try:
+                    validate_password(new1, target)
+                except ValidationError as exc:
+                    context['error'] = ' '.join(exc.messages)
+                else:
+                    target.set_password(new1)
+                    target.save(update_fields=['password'])
+                    owner_pin.reset_attempts()
+                    try:
+                        log_action(target, 'PASSWORD_RESET', 'User', target.id,
+                                   'Password reset with the owner PIN')
+                    except Exception:
+                        pass
+                    messages.success(request, 'Password changed for %s. Please sign in.'
+                                     % (target.full_name or target.username))
+                    return redirect('login')
+    return render(request, 'accounts/forgot_password.html', context)
+
+
+@login_required
 @require_POST
 def pin_verify(request):
     entered_pin = request.POST.get('pin', '').strip()
     action      = request.POST.get('action', 'unknown')
 
     try:
-        owner     = User.objects.get(role='owner')
+        owner     = User.objects.filter(role='owner').order_by('id').first()
         owner_pin = owner.pin
-    except (User.DoesNotExist, OwnerPIN.DoesNotExist):
+    except (User.DoesNotExist, OwnerPIN.DoesNotExist, AttributeError):
         return JsonResponse({'success': False, 'message': 'Owner PIN not configured.'})
 
     if owner_pin.is_locked:
@@ -129,6 +209,7 @@ def pin_verify(request):
         owner_pin.reset_attempts()
         log_action(request.user, 'PIN_VERIFIED', 'OwnerPIN', owner.id,
                    f'PIN verified for: {action}')
+        request.session[f'pin_verified_{action}'] = True
         return JsonResponse({'success': True, 'message': 'PIN verified.'})
 
     owner_pin.increment_attempts()
@@ -371,7 +452,7 @@ def dashboard(request):
     from discounts.models import Discount
     from django.conf import settings
 
-    today = date.today()
+    today = timezone.localdate()
 
     date_from = request.GET.get('date_from', today.isoformat())
     date_to   = request.GET.get('date_to',   today.isoformat())
@@ -427,17 +508,16 @@ def dashboard(request):
         credit_sales = qs.filter(payment_method='credit').aggregate(t=Sum('total'))['t'] or 0
         split_sales  = qs.filter(payment_method='split').aggregate(t=Sum('total'))['t'] or 0
 
-        gross_profit = (
+        _cogs = (
             SaleItem.objects
             .filter(sale__created_at__date__gte=start,
                     sale__created_at__date__lte=end)
-            .aggregate(gp=Sum(
-                ExpressionWrapper(
-                    (F('unit_price') - F('cost_price')) * F('quantity'),
-                    output_field=DecimalField(),
-                )
-            ))['gp'] or 0
+            .aggregate(c=Sum(ExpressionWrapper(
+                F('cost_price') * F('quantity'),
+                output_field=DecimalField(),
+            )))['c'] or 0
         )
+        gross_profit = total_sales - _cogs
 
         recent_sales = (
             Sale.objects
@@ -486,7 +566,7 @@ def dashboard(request):
     for p in Product.objects.select_related('stock_level').filter(is_active=True):
         try:
             qty     = p.stock_level.quantity
-            reorder = p.stock_level.reorder_point
+            reorder = p.reorder_point
             if qty <= reorder:
                 low_stock.append({
                     'name':          p.name,
@@ -498,6 +578,10 @@ def dashboard(request):
 
     # ── Shared: customer count (safe for both roles) ───────────────────────────
     total_customers = Customer.objects.count()
+    low_stock_count = len(low_stock)
+    _owing = Customer.objects.filter(credit_balance__gt=0)
+    owing_count = _owing.count()
+    total_owed = _owing.aggregate(t=Sum('credit_balance'))['t'] or 0
 
     try:
         shop     = ShopProfile.objects.first()
@@ -534,4 +618,7 @@ def dashboard(request):
         # Shared
         'total_customers':    total_customers,
         'low_stock':          low_stock,
+        'low_stock_count':    low_stock_count,
+        'owing_count':        owing_count,
+        'total_owed':         f'{total_owed:,.2f}',
     })

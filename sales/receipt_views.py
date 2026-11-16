@@ -27,8 +27,19 @@ def download_receipt_pdf(request, pk):
 def thermal_receipt(request, pk):
     """Thermal-optimised receipt view — for 58mm/80mm printers."""
     sale = get_object_or_404(Sale, pk=pk)
+    if not request.user.is_owner and sale.attendant != request.user:
+        messages.error(request, "You cannot access this receipt.")
+        return redirect('sales:sale_list')
     items = sale.items.select_related('product')
     payments = sale.payments.all()
+
+    cash_received = None
+    if sale.payment_method == 'cash':
+        cash_received = sale.total + sale.change_given
+    elif sale.payment_method == 'split':
+        cash_received = sum(
+            (p.amount for p in payments if p.method == 'cash'), 0
+        ) + sale.change_given
 
     try:
         from accounts.models import ShopProfile
@@ -39,7 +50,8 @@ def thermal_receipt(request, pk):
     return __import__('django.shortcuts', fromlist=['render']).render(
         request,
         'sales/thermal_receipt.html',
-        {'sale': sale, 'items': items, 'payments': payments, 'shop': shop},
+        {'sale': sale, 'items': items, 'payments': payments, 'shop': shop,
+         'cash_received': cash_received},
     )
 
 

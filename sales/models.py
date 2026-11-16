@@ -313,10 +313,10 @@ class CartSession(models.Model):
 
     @property
     def subtotal(self):
-        return Decimal(str(sum(
-            item.get('unit_price', 0) * item.get('quantity', 0)
-            for item in self.items_json
-        )))
+        total = Decimal('0')
+        for item in self.items_json:
+            total += Decimal(str(item.get('unit_price', 0))) * int(item.get('quantity', 0))
+        return total.quantize(Decimal('0.01'))
 
     @property
     def total(self):

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - Ericus POS{% endblock %}
+{% block title %}{{ title }} - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block extra_head %}
@@ -82,10 +82,23 @@
   <form method="post" id="poForm" autocomplete="off">
     {% csrf_token %}
 
+    {% if form.errors or formset.total_error_count %}
+    <div style="background:#fdecea;border:2px solid #dc3545;color:#7b1c1c;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:16px;">
+      <strong style="font-size:18px;">The order was NOT saved.</strong> Please fix this:
+      <ul style="margin:8px 0 0 20px;">
+        {% for field in form %}{% for e in field.errors %}<li>{{ field.label }}: {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+        {% for f in formset %}{% for field in f %}{% for e in field.errors %}<li>Item {{ forloop.parentloop.parentloop.counter }} - {{ field.label }}: {{ e }}</li>{% endfor %}{% endfor %}{% endfor %}
+        {% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+
     <!-- Operational Order Metadata Card -->
     <div class="card mb-3">
       <div class="card-header-split">
-        <h3>Primary Order Specifications</h3>
+        <h3>Order details</h3>
       </div>
       <div class="card-body" style="padding: 24px 20px;">
 
@@ -97,17 +110,17 @@
 
         <div class="po-form-grid">
           <div class="form-group">
-            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Supplier Asset *</label>
+            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Supplier *</label>
             {{ form.supplier }}
             {% if form.supplier.errors %}<span class="field-error">{{ form.supplier.errors.0 }}</span>{% endif %}
           </div>
           <div class="form-group">
-            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">System Ordering Date *</label>
+            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Date *</label>
             {{ form.order_date }}
             {% if form.order_date.errors %}<span class="field-error">{{ form.order_date.errors.0 }}</span>{% endif %}
           </div>
           <div class="form-group">
-            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Expected Arrival Target</label>
+            <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Expected delivery date</label>
             {{ form.expected_date }}
           </div>
           <div class="form-group">
@@ -116,6 +129,7 @@
           </div>
         </div>
 
+        <details style="margin-top:14px;"><summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent-dark);">More options (optional)</summary>
         <div class="form-group mb-3">
           <label class="form-label font-semibold" style="font-size: 0.82rem; margin-bottom: 6px; display: block; color: #475569;">Transaction Payment Reference Key</label>
           {{ form.payment_reference }}
@@ -149,6 +163,7 @@
             {{ form.internal_notes }}
           </div>
         </div>
+        </details>
 
       </div>
     </div>
@@ -156,9 +171,9 @@
     <!-- Inventory Line Items Grid Card -->
     <div class="card main-table-card mb-3">
       <div class="card-header-split">
-        <h3>Procurement Inventory Line Items</h3>
+        <h3>Items you are buying</h3>
         <button type="button" class="btn btn-sm btn-primary" onclick="addFormsetRow()">
-          + Add Line Item Row
+          + Add another item
         </button>
       </div>
       
@@ -174,11 +189,11 @@
         <table class="formset-table" id="formsetTable">
           <thead>
             <tr>
-              <th style="width: 38%;">Target Catalog Product *</th>
+              <th style="width: 38%;">Product *</th>
               <th style="width: 12%;" class="text-right">Quantity *</th>
-              <th style="width: 16%;" class="text-right">Unit Net Cost (GHS) *</th>
+              <th style="width: 16%;" class="text-right">Cost each (GHS) *</th>
               <th style="width: 18%;">Row Memo Note</th>
-              <th style="width: 12%;" class="text-right">Item Subtotal</th>
+              <th style="width: 12%;" class="text-right">Total</th>
               <th style="width: 4%;" class="text-center"></th>
             </tr>
           </thead>
@@ -215,17 +230,17 @@
     <div class="split-summary-panel">
       <div style="display: flex; gap: 12px; align-items: center;">
         <button type="submit" class="btn btn-success" id="submitBtn" style="padding: 10px 24px; font-weight: 600;">
-          {% if po %}Commit Execution Changes{% else %}Verify & Build Purchase Order{% endif %}
+          {% if po %}Commit Execution Changes{% else %}Save Order{% endif %}
         </button>
-        <a href="{% url 'purchases:po_list' %}" class="btn btn-outline" style="padding: 10px 20px;">Discard Form</a>
+        <a href="{% url 'purchases:po_list' %}" class="btn btn-outline" style="padding: 10px 20px;">Cancel</a>
       </div>
       
       <div class="totals-panel">
-        <div class="totals-row"><span>Gross Items Sum</span><span id="totItems">GHS 0.00</span></div>
-        <div class="totals-row"><span>Corporate Markdown Discount</span><span id="totDiscount">- GHS 0.00</span></div>
-        <div class="totals-row"><span>Assigned Duty Tax</span><span id="totTax">GHS 0.00</span></div>
-        <div class="totals-row"><span>Logistics Transport/Freight</span><span id="totShipping">GHS 0.00</span></div>
-        <div class="totals-row grand"><span>Final Grand Total</span><span id="totGrand">GHS 0.00</span></div>
+        <div class="totals-row"><span>Items total</span><span id="totItems">GHS 0.00</span></div>
+        <div class="totals-row"><span>Discount</span><span id="totDiscount">- GHS 0.00</span></div>
+        <div class="totals-row"><span>Tax</span><span id="totTax">GHS 0.00</span></div>
+        <div class="totals-row"><span>Delivery cost</span><span id="totShipping">GHS 0.00</span></div>
+        <div class="totals-row grand"><span>TOTAL</span><span id="totGrand">GHS 0.00</span></div>
       </div>
     </div>
 

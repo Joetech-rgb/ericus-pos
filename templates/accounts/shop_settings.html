@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Shop Details - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Shop Details{% endblock %}
+
+{% block content %}
+<style>
+  .sd label { display: block; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .sd .hint { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  .sd input[type=text], .sd input[type=email], .sd input[type=tel], .sd textarea {
+    width: 100%; padding: 12px; font-size: 17px; border: 2px solid var(--border); border-radius: 10px;
+    background: var(--card-bg); color: var(--text); font-family: inherit; }
+  .sd .field { margin-bottom: 18px; }
+  .sd .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+</style>
+
+<div class="sd" style="max-width:720px;">
+  <div class="card mb-3">
+    <div class="card-body" style="padding:16px 18px;font-size:15px;color:var(--text2);">
+      These details are printed at the top and bottom of every receipt.
+    </div>
+  </div>
+
+  {% if shop %}
+  <div class="card mb-3">
+    <div class="card-head"><h3>Saved details (this is what prints on receipts)</h3></div>
+    <div class="card-body" style="font-size:16px;line-height:1.7;">
+      {% if shop.logo %}<img src="{{ shop.logo.url }}" alt="" style="max-height:70px;display:block;margin-bottom:8px;">{% endif %}
+      <b>{{ shop.name }}</b>
+      {% if shop.tagline %}<br>{{ shop.tagline }}{% endif %}
+      {% if shop.address %}<br>{{ shop.address }}{% endif %}
+      {% if shop.phone %}<br>Tel: {{ shop.phone }}{% endif %}
+      {% if shop.receipt_footer %}<br><i>{{ shop.receipt_footer }}</i>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" autocomplete="off">
+    {% csrf_token %}
+    <div class="card mb-3">
+      <div class="card-head"><h3>Your shop</h3></div>
+      <div class="card-body">
+
+        <div class="field">
+          <label for="name">Shop name *</label>
+          <input type="text" id="name" name="name" value="{{ shop.name|default:'Adjei’s God First Ventures' }}" required>
+        </div>
+
+        <div class="field">
+          <label for="tagline">Slogan (optional)</label>
+          <input type="text" id="tagline" name="tagline" value="{{ shop.tagline|default:'' }}">
+        </div>
+
+        <div class="field">
+          <label for="address">Address</label>
+          <textarea id="address" name="address" rows="2">{{ shop.address|default:'' }}</textarea>
+          <div class="hint">Example: Makola Market, Accra</div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" name="phone" value="{{ shop.phone|default:'' }}">
+          </div>
+          <div class="field">
+            <label for="whatsapp">WhatsApp (optional)</label>
+            <input type="tel" id="whatsapp" name="whatsapp" value="{{ shop.whatsapp|default:'' }}">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="email">Email (optional)</label>
+          <input type="email" id="email" name="email" value="{{ shop.email|default:'' }}">
+        </div>
+
+        <div class="field">
+          <label for="receipt_footer">Message at the bottom of the receipt</label>
+          <input type="text" id="receipt_footer" name="receipt_footer"
+                 value="{{ shop.receipt_footer|default:'Thank you for shopping with us! All sales are final unless faulty.' }}">
+        </div>
+
+        <div class="field" style="margin-bottom:0;">
+          <label for="logo">Shop logo (optional)</label>
+          <input type="file" id="logo" name="logo" accept="image/*">
+          {% if shop.logo %}<div class="hint">A logo is already saved. Choose a file only to replace it.</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success" style="width:100%;padding:18px;font-size:19px;">Save shop details</button>
+  </form>
+</div>
+{% endblock %}

@@ -79,7 +79,7 @@ def product_search(request):
         products = products.filter(category_id=cat_id)
     if not q and not cat_id:
         pass  # show all when All tab clicked
-    products = products[:30]
+    products = products[:200]
 
     results = []
     for p in products:
@@ -98,7 +98,8 @@ def product_search(request):
             'sku': p.sku or '',
             'barcode': p.barcode or '',
             'price': price,
-            'cost_price': float(p.cost_price),
+            'cost_price': float(p.cost_price) if request.user.is_owner else 0,
+            'image': (p.image.url if p.image else ''),
             'stock': stock,
             'category': p.category.name if p.category else '',
             'image_url': p.image.url if p.image else '',
@@ -127,7 +128,7 @@ def barcode_lookup(request):
             'name': product.name,
             'brand': product.brand or '',
             'price': float(product.selling_price),
-            'cost_price': float(product.cost_price),
+            'cost_price': float(product.cost_price) if request.user.is_owner else 0,
             'stock': stock,
         })
     except Product.DoesNotExist:
@@ -171,7 +172,12 @@ def cart_add(request):
             product=product, status='in_stock'
         )
 
-    unit_price = form.cleaned_data.get('unit_price') or product.selling_price
+    # Price always comes from the database - never trust a price sent by the browser.
+    sale_type = request.POST.get('sale_type', 'retail')
+    if sale_type == 'wholesale' and product.wholesale_price:
+        unit_price = product.wholesale_price
+    else:
+        unit_price = product.selling_price
     cart.add_item(product, qty, unit_price=unit_price, product_unit=product_unit)
 
     return JsonResponse({
@@ -191,6 +197,15 @@ def cart_update(request):
         return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
     cart = get_or_create_cart(request)
+    _qty = form.cleaned_data['quantity']
+    if _qty > 0 and not form.cleaned_data.get('product_unit_id'):
+        try:
+            from products.models import Product
+            _stock = Product.objects.get(pk=form.cleaned_data['product_id']).stock_level.quantity
+        except Exception:
+            _stock = None
+        if _stock is not None and _qty > _stock:
+            return JsonResponse({'ok': False, 'error': 'Only %s in stock.' % _stock}, status=400)
     cart.update_quantity(
         form.cleaned_data['product_id'],
         form.cleaned_data['quantity'],
@@ -201,6 +216,54 @@ def cart_update(request):
         'cart_count': cart.item_count,
         'cart_total': float(cart.total),
     })
+
+
+@login_required
+@require_POST
+def cart_set_price(request):
+    """Change the selling price of one cart line (bargaining).
+    Owner: any price. Cashier: not below the cost price."""
+    cart = get_or_create_cart(request)
+    try:
+        product_id = int(request.POST.get('product_id'))
+        unit_raw = request.POST.get('product_unit_id')
+        unit_id = int(unit_raw) if unit_raw else None
+        price = Decimal(str(request.POST.get('price', '')).strip())
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'Type a valid price.'}, status=400)
+    if price <= 0:
+        return JsonResponse({'ok': False, 'error': 'Price must be more than zero.'}, status=400)
+
+    for item in cart.items_json:
+        if item['product_id'] == product_id and item.get('product_unit_id') == unit_id:
+            cost = Decimal(str(item.get('cost_price', 0)))
+            from django.conf import settings as _settings
+            _pct = Decimal(str(getattr(_settings, 'CASHIER_MAX_DISCOUNT_PERCENT', 10)))
+            _base = Decimal(str(item.get('original_price', item['unit_price'])))
+            _floor = max(cost, _base * (Decimal('100') - _pct) / Decimal('100'))
+            if price < _floor and not request.user.is_owner:
+                return JsonResponse(
+                    {'ok': False, 'error': 'A cashier can lower a price by at most %s%%. Please ask the owner.' % _pct},
+                    status=400)
+            old = Decimal(str(item['unit_price']))
+            item.setdefault('original_price', float(old))
+            item['unit_price'] = float(price)
+            item['subtotal'] = float(price * item['quantity'])
+            cart.save()
+            try:
+                log_sale(
+                    request.user,
+                    f"Price changed for {item.get('product_name', '')}: {old} to {price}",
+                    request=request,
+                )
+            except Exception:
+                pass
+            return JsonResponse({
+                'ok': True,
+                'cart_count': cart.item_count,
+                'cart_total': float(cart.total),
+            })
+    return JsonResponse({'ok': False, 'error': 'Item not found in cart.'}, status=404)
 
 
 @login_required
@@ -238,7 +301,8 @@ def cart_state(request):
     """Return full cart JSON — called to re-render cart panel."""
     cart = get_or_create_cart(request)
     return JsonResponse({
-        'items': cart.items_json,
+        'items': (cart.items_json if request.user.is_owner else
+                  [{k: v for k, v in i.items() if k != 'cost_price'} for i in cart.items_json]),
         'item_count': cart.item_count,
         'subtotal': float(cart.subtotal),
         'discount_amount': float(cart.discount_amount),
@@ -273,6 +337,11 @@ def apply_discount(request):
     is_valid, error_msg, amount = validate_discount(discount, cart.subtotal, cart.customer)
     if not is_valid:
         return JsonResponse({'ok': False, 'error': error_msg})
+
+    if getattr(discount, 'requires_pin', False) and not request.user.is_owner:
+        if not request.session.pop('pin_verified_discount', False):
+            return JsonResponse({'ok': False, 'requires_pin': True,
+                                 'error': 'Owner PIN required for this discount.'})
 
     cart.discount = discount
     cart.discount_code = code
@@ -333,12 +402,6 @@ def checkout(request):
     form = CheckoutForm(request.POST)
     cart = get_or_create_cart(request)
 
-    # DEBUG - remove after fix
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(f'CHECKOUT DEBUG: user={request.user}, session={request.session.session_key}, cart_id={cart.pk}, items={len(cart.items_json)}')
-    logger.warning(f'CHECKOUT FORM ERRORS: {form.errors if not form.is_valid() else "VALID"}')
-    logger.warning(f'CHECKOUT POST DATA: {dict(request.POST)}')
 
     if not cart.items_json:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -349,7 +412,8 @@ def checkout(request):
     # Update cart extras from form before checkout
     if not form.is_valid():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'ok': False, 'error': 'Invalid form data.', 'errors': form.errors}, status=400)
+            msgs = ' '.join(f"{k}: {' '.join(v)}" for k, v in form.errors.items())
+            return JsonResponse({'ok': False, 'error': msgs or 'Invalid form data.'}, status=400)
         messages.error(request, 'Invalid checkout data.')
         return redirect('sales:pos')
 
@@ -358,7 +422,8 @@ def checkout(request):
         cart.installation_fee = form.cleaned_data.get('installation_fee') or Decimal('0')
         cart.delivery_fee = form.cleaned_data.get('delivery_fee') or Decimal('0')
         cart.notes = form.cleaned_data.get('notes') or ''
-        cart.save(update_fields=['installation_fee', 'delivery_fee', 'notes'])
+        cart.sale_type = form.cleaned_data.get('sale_type') or 'retail'
+        cart.save(update_fields=['installation_fee', 'delivery_fee', 'notes', 'sale_type'])
 
         # Attach customer if given
         customer_id = form.cleaned_data.get('customer_id')
@@ -370,6 +435,21 @@ def checkout(request):
             except Customer.DoesNotExist:
                 pass
 
+        # Customer typed at checkout (name + phone): find or create, then attach
+        cust_phone = ''.join(ch for ch in (form.cleaned_data.get('customer_phone') or '') if ch.isdigit() or ch == '+')
+        cust_name = (form.cleaned_data.get('customer_name') or '').strip()
+        if cust_phone and not cart.customer:
+            from customers.models import Customer
+            customer = Customer.objects.filter(phone=cust_phone).first()
+            if not customer:
+                customer = Customer.objects.create(
+                    full_name=cust_name or cust_phone,
+                    phone=cust_phone,
+                    created_by=request.user,
+                )
+            cart.customer = customer
+            cart.save(update_fields=['customer'])
+
         try:
             sale = build_sale_from_cart(
                 cart=cart,
@@ -378,6 +458,7 @@ def checkout(request):
                 momo_amount=form.cleaned_data.get('momo_amount'),
                 momo_reference=form.cleaned_data.get('momo_reference', ''),
                 credit_due_date=form.cleaned_data.get('credit_due_date'),
+                part_paid=form.cleaned_data.get('part_paid'),
                 user=request.user,
             )
         except ValueError as e:
@@ -404,9 +485,12 @@ def checkout(request):
             return JsonResponse({
                 'ok': True,
                 'receipt_url': f"/sales/{sale.pk}/receipt/",
+                'thermal_url': f"/sales/{sale.pk}/receipt/thermal/",
                 'receipt_number': sale.receipt_number,
                 'total': float(sale.total),
                 'change': float(sale.change_given),
+                'balance_due': float(sale.balance_due),
+                'customer_name': sale.customer_name or '',
             })
 
         messages.success(request, f"Sale {sale.receipt_number} completed successfully!")
@@ -425,6 +509,9 @@ def checkout(request):
 def receipt(request, pk):
     """Screen receipt shown after a completed sale."""
     sale = get_object_or_404(Sale, pk=pk)
+    if not request.user.is_owner and sale.attendant != request.user:
+        messages.error(request, "You can only view your own receipts.")
+        return redirect('sales:sale_list')
     items = sale.items.select_related('product')
     payments = sale.payments.all()
     return render(request, 'sales/receipt.html', {

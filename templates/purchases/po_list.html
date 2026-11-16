@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Purchase Orders - Ericus POS{% endblock %}
+{% block title %}Purchase Orders - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}Purchase Orders{% endblock %}
 {% block nav_purchasesmgmt %}active{% endblock %}
 
@@ -81,15 +81,12 @@
         <tr>
           <th>PO Number</th>
           <th>Supplier</th>
-          <th>Order Date</th>
-          <th>Expected</th>
-          <th>Items</th>
-          <th>Grand Total</th>
-          <th>Amount Paid</th>
-          <th>Amount Due</th>
+          <th>Date</th>
+                              <th>Total</th>
+          <th>Paid</th>
+          <th>Still owed</th>
           <th>Status</th>
-          <th>Created By</th>
-          <th>Actions</th>
+                    <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -104,9 +101,7 @@
             <div style="font-weight:bold;">{{ po.supplier.name }}</div>
           </td>
           <td class="text-sm">{{ po.order_date|date:"d M Y" }}</td>
-          <td class="text-sm">{{ po.expected_date|date:"d M Y"|default:"—" }}</td>
-          <td class="text-sm text-muted">{{ po.total_items }}</td>
-          <td class="text-sm">GHS {{ po.grand_total }}</td>
+                              <td class="text-sm">GHS {{ po.grand_total }}</td>
           <td class="text-sm" style="color:#28a745;">GHS {{ po.amount_paid }}</td>
           <td class="text-sm" style="{% if po.amount_due > 0 %}color:#dc3545;font-weight:bold;{% endif %}">
             GHS {{ po.amount_due }}
@@ -119,22 +114,21 @@
             {% elif po.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
             {% endif %}
           </td>
-          <td class="text-sm text-muted">{{ po.created_by.get_full_name|default:po.created_by.username }}</td>
-          <td>
+                    <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
               <a href="{% url 'purchases:po_detail' po.pk %}" class="btn btn-sm btn-outline">View</a>
               {% if po.status == 'draft' %}
               <a href="{% url 'purchases:po_edit' po.pk %}" class="btn btn-sm btn-primary">Edit</a>
               {% endif %}
               {% if po.status in 'ordered,partial' %}
-              <a href="{% url 'purchases:grn_create' po.pk %}" class="btn btn-sm btn-success">Receive</a>
+              <a href="{% url 'purchases:grn_create' po.pk %}" class="btn btn-sm btn-success">Receive goods</a>
               {% endif %}
             </div>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="11" class="text-center text-muted" style="padding:40px;">
+          <td colspan="8" class="text-center text-muted" style="padding:40px;">
             No purchase orders found.
             <a href="{% url 'purchases:po_create' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Create First PO</a>
           </td>

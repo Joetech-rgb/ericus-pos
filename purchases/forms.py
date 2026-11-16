@@ -52,12 +52,22 @@ class PurchaseOrderForm(forms.ModelForm):
         self.fields['expected_date'].required = False
         self.fields['payment_method'].required = False
         self.fields['payment_reference'].required = False
+        for _f in ('discount_amount', 'tax_amount', 'shipping_cost', 'order_date'):
+            self.fields[_f].required = False
+        from django.utils import timezone
+        self.fields['order_date'].initial = timezone.localdate()
 
     def clean(self):
         cleaned_data = super().clean()
         discount = cleaned_data.get('discount_amount', 0) or 0
         tax = cleaned_data.get('tax_amount', 0) or 0
         shipping = cleaned_data.get('shipping_cost', 0) or 0
+        cleaned_data['discount_amount'] = discount
+        cleaned_data['tax_amount'] = tax
+        cleaned_data['shipping_cost'] = shipping
+        if not cleaned_data.get('order_date'):
+            from django.utils import timezone
+            cleaned_data['order_date'] = timezone.localdate()
         if discount < 0:
             self.add_error('discount_amount', 'Discount cannot be negative.')
         if tax < 0:

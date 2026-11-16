@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Discount history - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}History: {{ discount.name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'discounts:list' %}" class="btn btn-outline btn-sm">&#8592; Back to discounts</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">
+  <div class="card-body" style="padding:16px 18px;font-size:16px;">
+    <b>{{ discount.name }}</b>
+    {% if discount.code %} &middot; code <b style="letter-spacing:1px;">{{ discount.code }}</b>{% endif %}
+    &middot; used <b>{{ discount.times_used }}</b> time{{ discount.times_used|pluralize }}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Every time it was used</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Customer</th><th>Receipt</th><th>Saved</th><th>Cashier</th></tr>
+      </thead>
+      <tbody>
+        {% for u in page_obj %}
+        <tr>
+          <td class="text-sm">{{ u.applied_at|date:"d M Y H:i" }}</td>
+          <td>{% if u.customer %}{{ u.customer.full_name }}{% else %}Walk-in{% endif %}</td>
+          <td>{% if u.sale %}<a href="{% url 'sales:sale_detail' u.sale.pk %}">{{ u.sale.receipt_number }}</a>{% else %}-{% endif %}</td>
+          <td><b>GHS {{ u.amount_saved }}</b></td>
+          <td class="text-sm">{% if u.applied_by %}{{ u.applied_by.full_name|default:u.applied_by.username }}{% else %}-{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted" style="padding:30px;">Not used yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="page-link">&#8249;</a>{% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    <span class="page-link active">{{ page_obj.number }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-link">&#8250;</a>{% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

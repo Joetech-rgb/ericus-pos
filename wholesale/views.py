@@ -193,7 +193,11 @@ def order_deliver(request, pk):
 
 # ─── Cancel Order ─────────────────────────────────────────────────────────────
 
+from accounts.decorators import owner_required as _owner_required
+
+
 @login_required
+@_owner_required
 def order_cancel(request, pk):
     order = get_object_or_404(WholesaleOrder, pk=pk)
     if request.method == 'POST':

@@ -65,7 +65,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class ShopProfile(models.Model):
     owner           = models.OneToOneField(User, on_delete=models.CASCADE, related_name='shop')
-    name            = models.CharField(max_length=100, default='Ericus Electrical & Home Appliances')
+    name            = models.CharField(max_length=100, default='Adjei’s God First Ventures')
     tagline         = models.CharField(max_length=200, blank=True, default='Quality Products, Trusted Service')
     logo            = models.ImageField(upload_to='shop/', blank=True, null=True)
     address         = models.TextField(blank=True)
@@ -75,7 +75,7 @@ class ShopProfile(models.Model):
     receipt_footer  = models.CharField(
         max_length=200,
         blank=True,
-        default='Thank you for shopping at Ericus! All sales are final unless faulty.'
+        default='Thank you for shopping at Adjei’s God First Ventures! All sales are final unless faulty.'
     )
     currency_symbol = models.CharField(max_length=5, default='GH₵')
     created_at      = models.DateTimeField(auto_now_add=True)

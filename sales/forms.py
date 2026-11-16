@@ -92,6 +92,9 @@ class CheckoutForm(forms.Form):
             'placeholder': 'Any notes for this sale…',
         }),
     )
+    customer_name = forms.CharField(required=False, max_length=200)
+    customer_phone = forms.CharField(required=False, max_length=20)
+    part_paid = forms.DecimalField(required=False, min_value=0, decimal_places=2)
     customer_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     sale_type = forms.ChoiceField(
         choices=[('retail', 'Retail'), ('wholesale', 'Wholesale')],
@@ -113,9 +116,7 @@ class CheckoutForm(forms.Form):
         cash = cleaned.get('cash_tendered') or Decimal('0')
         momo = cleaned.get('momo_amount') or Decimal('0')
 
-        # MoMo reference is only required when payment method is momo or split
-        if method in ('momo', 'split') and not cleaned.get('momo_reference'):
-            self.add_error('momo_reference', 'MoMo reference number is required.')
+        # MoMo reference is optional (keeps checkout fast)
 
         if method == 'split':
             if cash <= 0 and momo <= 0:

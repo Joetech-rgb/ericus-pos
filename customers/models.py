@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class Customer(models.Model):
     """
-    A customer of Ericus Electrical & Home Appliances.
+    A customer of Adjei’s God First Ventures.
     Linked to sales, wholesale orders, and returns.
     """
 

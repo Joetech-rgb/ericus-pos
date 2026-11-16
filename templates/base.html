@@ -1,11 +1,11 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}Ericus POS{% endblock %}</title>
+<title>{% block title %}Adjei’s God First Ventures{% endblock %}</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -42,7 +42,7 @@
 }
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;background:var(--page-bg);color:var(--text);display:flex;min-height:100vh;}
 
-/* ── Sidebar ─────────────────────────────── */
+/* -- Sidebar ------------------------------- */
 .sidebar{
   width:var(--sidebar-width);
   background:var(--sidebar-bg);
@@ -133,7 +133,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
 .nav-logout{color:#ff7b7b !important;}
 .nav-logout:hover{background:rgba(220,53,69,0.1) !important;color:#ff4444 !important;}
 
-/* ── Main ────────────────────────────────── */
+/* -- Main ---------------------------------- */
 .main-wrap{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
 .topbar{
@@ -154,7 +154,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
   border-radius:20px;
 }
 
-/* ── Alerts ──────────────────────────────── */
+/* -- Alerts -------------------------------- */
 .messages-wrap{padding:14px 24px 0;}
 .alert{
   padding:11px 16px;border-radius:var(--radius);
@@ -169,7 +169,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
 
 .page-body{padding:20px 24px;flex:1;}
 
-/* ── Cards ───────────────────────────────── */
+/* -- Cards --------------------------------- */
 .card{
   background:var(--card-bg);
   border:1px solid var(--border);
@@ -184,7 +184,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
 .card-head h3{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.1px;}
 .card-body{padding:18px;}
 
-/* ── Stats ───────────────────────────────── */
+/* -- Stats --------------------------------- */
 .stats-row{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
@@ -209,7 +209,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
 .s-value{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.5px;line-height:1;}
 .s-sub{font-size:11px;color:var(--text3);margin-top:5px;}
 
-/* ── Buttons ─────────────────────────────── */
+/* -- Buttons ------------------------------- */
 .btn{
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 16px;border-radius:var(--radius);
@@ -234,7 +234,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;ba
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
 .btn-outline:hover{background:var(--page-bg);border-color:var(--accent);color:var(--accent);}
 
-/* ── Forms ───────────────────────────────── */
+/* -- Forms --------------------------------- */
 .form-group{margin-bottom:14px;}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;letter-spacing:0.2px;}
 .form-control{
@@ -250,7 +250,7 @@ textarea.form-control{min-height:80px;resize:vertical;}
 .errorlist{list-style:none;}
 .errorlist li{font-size:12px;color:#dc3545;margin-top:3px;}
 
-/* ── Tables ──────────────────────────────── */
+/* -- Tables -------------------------------- */
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
 thead th{
@@ -267,7 +267,7 @@ tbody td{
 tbody tr:hover{background:var(--accent-glow);}
 tbody tr:last-child td{border-bottom:none;}
 
-/* ── Badges ──────────────────────────────── */
+/* -- Badges -------------------------------- */
 .badge{
   display:inline-block;padding:3px 9px;
   border-radius:20px;font-size:11px;font-weight:700;
@@ -280,7 +280,7 @@ tbody tr:last-child td{border-bottom:none;}
 .badge-primary{background:#d0eef0;color:var(--accent-dark);}
 .badge-secondary{background:#e9ecef;color:#495057;}
 
-/* ── Pagination ──────────────────────────── */
+/* -- Pagination ---------------------------- */
 .pagination{
   display:flex;align-items:center;gap:4px;
   padding:14px 18px;border-top:1px solid var(--border);
@@ -297,7 +297,7 @@ tbody tr:last-child td{border-bottom:none;}
 .page-link.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .page-link.disabled{opacity:0.35;pointer-events:none;}
 
-/* ── Utility ─────────────────────────────── */
+/* -- Utility ------------------------------- */
 .filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
@@ -308,7 +308,7 @@ tbody tr:last-child td{border-bottom:none;}
 .text-danger{color:#dc3545}.text-success{color:#28a745}
 .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
-/* ── Mobile ──────────────────────────────── */
+/* -- Mobile -------------------------------- */
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:4px;}
 .hamburger span{display:block;width:20px;height:2px;background:var(--text2);margin:4px 0;border-radius:2px;}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:199;}
@@ -322,6 +322,73 @@ tbody tr:last-child td{border-bottom:none;}
   .stats-row{grid-template-columns:1fr 1fr;}
   .page-body{padding:14px 16px;}
 }
+.theme-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);
+  border-radius:20px;background:var(--page-bg);color:var(--text);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
+.theme-btn:hover{border-color:var(--accent);}
+@media(max-width:600px){.theme-btn #darkBtnLabel{display:none;}}
+</style>
+<style id="premium-theme">
+:root{
+  --page-bg:#f5f5f7; --card-bg:#ffffff; --border:rgba(0,0,0,.07);
+  --radius:16px; --radius-sm:10px;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
+  --shadow-md:0 10px 36px rgba(0,0,0,.09);
+  --sidebar-hover:rgba(255,255,255,.06);
+  --sidebar-active-bg:rgba(255,255,255,.11);
+  --sidebar-width:224px;
+}
+[data-theme="dark"]{
+  --page-bg:#0b1314; --card-bg:#121d1f; --topbar-bg:#0b1314;
+  --border:rgba(255,255,255,.07);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+}
+html{background:var(--page-bg);-webkit-font-smoothing:antialiased;}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;letter-spacing:-0.01em;}
+
+/* Sidebar: one seamless surface, no divider lines, no scrollbar strip */
+.sidebar{background:linear-gradient(180deg,#152a2c 0%,#0e1c1d 100%);border-right:none;}
+.sidebar-logo,.sidebar-bottom,.sidebar-user{border:none !important;}
+.sidebar-nav{
+  padding:6px 0 14px;scrollbar-width:none;-ms-overflow-style:none;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+          mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+}
+.sidebar-nav::-webkit-scrollbar{display:none;}
+.nav-section-label{padding:16px 22px 6px;color:rgba(255,255,255,.32);}
+.nav-link{margin:2px 10px;padding:9px 12px;border-left:none !important;border-radius:10px;}
+.nav-link.active{background:var(--sidebar-active-bg);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);}
+.sidebar-bottom{padding:6px 0 12px;}
+.sidebar-user{padding:10px 22px 6px;}
+
+/* Topbar: frosted glass */
+.topbar{
+  background:rgba(245,245,247,.72);
+  -webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);
+  border-bottom:none;box-shadow:none;height:58px;
+}
+[data-theme="dark"] .topbar{background:rgba(11,19,20,.72);}
+.topbar-user,.theme-btn{border:none;background:rgba(0,0,0,.05);}
+[data-theme="dark"] .topbar-user,[data-theme="dark"] .theme-btn{background:rgba(255,255,255,.08);}
+
+/* Cards, stats, tables */
+.card,.stat-box{border:none;box-shadow:var(--shadow);}
+.stat-box::after{display:none;}
+.card-head{border-bottom:1px solid var(--border);}
+thead th{background:transparent;border-bottom:1px solid var(--border);}
+tbody td{border-bottom:1px solid var(--border);}
+.divider{border-top-color:var(--border);}
+
+/* Buttons and inputs */
+.btn{border-radius:980px;padding:9px 18px;}
+.btn-sm{padding:6px 13px;}
+.btn-primary{background:var(--accent);box-shadow:none;}
+.btn-outline{border:none;background:rgba(0,0,0,.05);}
+[data-theme="dark"] .btn-outline{background:rgba(255,255,255,.08);}
+.form-control{background:rgba(0,0,0,.04);border:1.5px solid transparent;border-radius:12px;padding:10px 14px;}
+[data-theme="dark"] .form-control{background:rgba(255,255,255,.06);}
+.form-control:focus{background:var(--card-bg);}
+.alert{border-left:none;border-radius:14px;box-shadow:var(--shadow);}
+.page-body{padding:24px 28px;}
 </style>
 {% block extra_head %}{% endblock %}
 </head>
@@ -331,11 +398,9 @@ tbody tr:last-child td{border-bottom:none;}
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <img src="{% static 'img/logo.png' %}" alt="Ericus POS"
-         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-    <div class="logo-fallback" style="display:none;">E</div>
+    {% if site_shop and site_shop.logo %}<img src="{{ site_shop.logo.url }}" alt="{{ site_shop.name }}">{% else %}<div class="logo-fallback" style="display:flex;">{{ site_shop.name|default:"Adjei’s God First Ventures"|first }}</div>{% endif %}
     <div class="sidebar-brand">
-      <div class="shop-name">{% if request.user.is_authenticated %}{{ request.user.shop.name|default:"Ericus Enterprise" }}{% else %}Ericus Enterprise{% endif %}</div>
+      <div class="shop-name">{{ site_shop.name|default:"Adjei’s God First Ventures" }}</div>
       <div class="app-name">Point of Sale</div>
     </div>
   </div>
@@ -343,55 +408,64 @@ tbody tr:last-child td{border-bottom:none;}
   <nav class="sidebar-nav">
     <div class="nav-section-label">Main</div>
     <a href="{% url 'dashboard' %}" class="nav-link {% block nav_dash %}{% endblock %}">
-      <span class="nav-icon">⊞</span> Dashboard
+      <span class="nav-icon">📊</span> Dashboard
     </a>
     <a href="{% url 'sales:pos' %}" class="nav-link {% block nav_pos %}{% endblock %}">
-      <span class="nav-icon">⊕</span> Sales / POS
+      <span class="nav-icon">🛒</span> Sales / POS
     </a>
     <a href="{% url 'product_list' %}" class="nav-link {% block nav_products %}{% endblock %}">
-      <span class="nav-icon">◫</span> Products
+      <span class="nav-icon">📦</span> Products
     </a>
     <a href="/inventory/" class="nav-link {% block nav_inventory %}{% endblock %}">
-      <span class="nav-icon">▤</span> Inventory
+      <span class="nav-icon">📥</span> Inventory
     </a>
     <div class="nav-section-label">Business</div>
     <a href="{% url 'customers:list' %}" class="nav-link {% block nav_customers %}{% endblock %}">
-      <span class="nav-icon">◑</span> Customers
+      <span class="nav-icon">👥</span> Customers
     </a>
-    <a href="/purchases/" class="nav-link {% block nav_purchases %}{% endblock %}">
-      <span class="nav-icon">◈</span> Suppliers
+    <a href="{% url 'returns:return_list' %}" class="nav-link {% block nav_returns %}{% endblock %}">
+      <span class="nav-icon">&#8617;</span> Returns
     </a>
-    <a href="/purchases/" class="nav-link {% block nav_purchasesmgmt %}{% endblock %}">
-      <span class="nav-icon">◎</span> Purchases
+    {% if request.user.is_owner %}
+    <a href="{% url 'purchases:supplier_list' %}" class="nav-link {% block nav_purchases %}{% endblock %}">
+      <span class="nav-icon">🚚</span> Suppliers
     </a>
+    <a href="{% url 'purchases:po_list' %}" class="nav-link {% block nav_purchasesmgmt %}{% endblock %}">
+      <span class="nav-icon">🧾</span> Purchases
+    </a>
+    {% endif %}
     {% if request.user.is_owner %}
     <div class="nav-section-label">Team</div>
     <a href="{% url 'user_list' %}" class="nav-link {% block nav_users %}{% endblock %}">
       <span class="nav-icon">👤</span> Users
     </a>
     {% endif %}
-    <div class="nav-section-label">Insights</div>
+    <div class="nav-section-label">More</div>
+    {% if request.user.is_owner %}
     <a href="/reports/" class="nav-link {% block nav_reports %}{% endblock %}">
-      <span class="nav-icon">◳</span> Reports
+      <span class="nav-icon">📈</span> Reports
     </a>
     <a href="/audit/" class="nav-link {% block nav_audit %}{% endblock %}">
-      <span class="nav-icon">◷</span> Audit &amp; Logs
+      <span class="nav-icon">📋</span> Audit &amp; Logs
     </a>
+    {% endif %}
+    {% if request.user.is_owner %}
+    <a href="{% url 'shop_settings' %}" class="nav-link {% block nav_shop %}{% endblock %}">
+      <span class="nav-icon">&#127978;</span> Shop Details
+    </a>
+    {% endif %}
     <a href="/profile/" class="nav-link {% block nav_settings %}{% endblock %}">
-      <span class="nav-icon">◉</span> Settings
+      <span class="nav-icon">⚙️</span> Settings
     </a>
   </nav>
 
   <div class="sidebar-bottom">
-    <button class="dark-mode-btn" onclick="toggleDark()" id="darkBtn">
-      <span>◑</span> <span id="darkBtnLabel">Dark Mode</span>
-    </button>
     <div class="sidebar-user">
       <div class="u-name">{{ request.user.get_full_name|default:request.user.username }}</div>
       <div class="u-role">{% if request.user.is_owner %}Owner{% else %}Attendant{% endif %}</div>
     </div>
     <a href="{% url 'logout' %}" class="nav-link nav-logout">
-      <span class="nav-icon">⊗</span> Logout
+      <span class="nav-icon">🚪</span> Logout
     </a>
   </div>
 </aside>
@@ -399,9 +473,10 @@ tbody tr:last-child td{border-bottom:none;}
 <div class="main-wrap">
   <header class="topbar">
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
-    <div class="topbar-left">{% block page_title %}Ericus POS{% endblock %}</div>
+    <div class="topbar-left">{% block page_title %}KoahCloud POS{% endblock %}</div>
     <div class="topbar-right">
       {% block topbar_actions %}{% endblock %}
+      <button type="button" class="theme-btn" onclick="toggleDark()" id="darkBtn" title="Switch dark / light"><span id="darkBtnIcon">&#9790;</span> <span id="darkBtnLabel">Dark Mode</span></button>
       <span class="topbar-user">{{ request.user.get_full_name|default:request.user.username }}</span>
     </div>
     <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
@@ -419,16 +494,20 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <script>
+function applyThemeLabel(t){
+  var l=document.getElementById('darkBtnLabel'), i=document.getElementById('darkBtnIcon');
+  if(l) l.textContent = t==='dark' ? 'Light Mode' : 'Dark Mode';
+  if(i) i.innerHTML = t==='dark' ? '&#9728;' : '&#9790;';
+}
 function toggleDark(){
   const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',t);
-  document.getElementById('darkBtnLabel').textContent=t==='dark'?'Light Mode':'Dark Mode';
+  applyThemeLabel(t);
   localStorage.setItem('pos_theme',t);
 }
 const saved=localStorage.getItem('pos_theme')||'light';
 document.documentElement.setAttribute('data-theme',saved);
-if(document.getElementById('darkBtnLabel'))
-  document.getElementById('darkBtnLabel').textContent=saved==='dark'?'Light Mode':'Dark Mode';
+applyThemeLabel(saved);
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('open');

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Receipt {{ sale.receipt_number }} - Ericus POS{% endblock %}
+{% block title %}Receipt {{ sale.receipt_number }} - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}Receipt{% endblock %}
 {% block nav_pos %}active{% endblock %}
 
@@ -38,7 +38,7 @@
       <!-- Shop Header -->
       <div style="text-align:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px;">
         <div style="font-size:18px;font-weight:bold;font-family:'Times New Roman',serif;color:var(--text);">
-          {% if request.user.shop %}{{ request.user.shop.name }}{% else %}Ericus Electrical & Home Appliances{% endif %}
+          {% if request.user.shop %}{{ request.user.shop.name }}{% else %}Adjei’s God First Ventures{% endif %}
         </div>
         {% if request.user.shop.address %}
         <div style="font-size:12px;color:var(--text3);font-family:'Times New Roman',serif;margin-top:3px;">{{ request.user.shop.address }}</div>

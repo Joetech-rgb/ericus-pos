@@ -106,8 +106,11 @@ class Product(models.Model):
 
     @property
     def current_stock(self):
-        """Total sellable units in stock (excludes demo and damaged)."""
-        return self.units.filter(status='in_stock', condition='new').count()
+        """Sellable stock - the same number the sales screen and dashboard use."""
+        try:
+            return self.stock_level.quantity
+        except Exception:
+            return self.units.filter(status='in_stock', condition='new').count()
 
     @property
     def demo_stock(self):

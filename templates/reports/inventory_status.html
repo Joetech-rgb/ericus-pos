@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Inventory Status - Ericus POS{% endblock %}
+{% block title %}Inventory Status - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}Inventory Status{% endblock %}
 {% block nav_reports %}active{% endblock %}
 
@@ -26,7 +26,7 @@
       <input type="checkbox" name="low_stock_only" value="1" {% if low_stock_only %}checked{% endif %}> Low stock only
     </label>
     <button type="submit" class="btn btn-primary">Filter</button>
-    <a href="{% url 'reports:inventory' %}" class="btn btn-outline">Clear</a>
+    <a href="{% url 'reports:inventory_status' %}" class="btn btn-outline">Clear</a>
   </div>
 </form>
 

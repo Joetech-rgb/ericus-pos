@@ -158,6 +158,10 @@ def record_credit_payment(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     form     = CreditPaymentForm(request.POST)
 
+    if form.is_valid() and form.cleaned_data['amount'] > customer.credit_balance:
+        messages.error(request, f'This customer only owes GHS {customer.credit_balance}. Type that amount or less.')
+        return redirect('customers:detail', pk=customer.pk)
+
     if form.is_valid():
         payment = form.save(commit=False)
         payment.customer    = customer

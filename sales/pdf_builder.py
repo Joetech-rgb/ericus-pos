@@ -66,8 +66,22 @@ def build_receipt_pdf(sale):
 
     story = []
 
+    # Shop logo (optional)
+    try:
+        if shop and shop.logo:
+            from reportlab.platypus import Image as RLImage
+            _logo = RLImage(shop.logo.path)
+            _h = 16 * mm
+            _logo.drawWidth = _h * (_logo.imageWidth / float(_logo.imageHeight))
+            _logo.drawHeight = _h
+            _logo.hAlign = 'CENTER'
+            story.append(_logo)
+            story.append(Spacer(1, 2 * mm))
+    except Exception:
+        pass
+
     # ── Header ────────────────────────────────────────────────────────────────
-    shop_name = shop.name if shop else "Ericus Electrical & Home Appliances"
+    shop_name = shop.name if shop else "Adjei’s God First Ventures"
     story.append(Paragraph(shop_name, bold_center))
     if shop and shop.address:
         story.append(Paragraph(shop.address, small_center))
@@ -98,8 +112,8 @@ def build_receipt_pdf(sale):
             Paragraph(f"{item.product_name}<br/><font size=7>{item.serial_number}</font>",
                       styles['Normal']),
             str(item.quantity),
-            f"GH₵{item.unit_price:,.2f}",
-            f"GH₵{item.subtotal:,.2f}",
+            f"GHS {item.unit_price:,.2f}",
+            f"GHS {item.subtotal:,.2f}",
         ])
 
     item_table = Table(data, colWidths=[70 * mm, 12 * mm, 28 * mm, 28 * mm])
@@ -119,19 +133,21 @@ def build_receipt_pdf(sale):
     # ── Totals ────────────────────────────────────────────────────────────────
     totals_data = []
     if sale.discount_amount:
-        totals_data.append(['Subtotal:', f"GH₵{sale.subtotal:,.2f}"])
-        totals_data.append([f'Discount ({sale.discount_code_used}):', f"- GH₵{sale.discount_amount:,.2f}"])
+        totals_data.append(['Subtotal:', f"GHS {sale.subtotal:,.2f}"])
+        totals_data.append([f'Discount ({sale.discount_code_used}):', f"- GHS {sale.discount_amount:,.2f}"])
     if sale.installation_fee:
-        totals_data.append(['Installation Fee:', f"GH₵{sale.installation_fee:,.2f}"])
+        totals_data.append(['Installation Fee:', f"GHS {sale.installation_fee:,.2f}"])
     if sale.delivery_fee:
-        totals_data.append(['Delivery Fee:', f"GH₵{sale.delivery_fee:,.2f}"])
-    totals_data.append(['TOTAL:', f"GH₵{sale.total:,.2f}"])
+        totals_data.append(['Delivery Fee:', f"GHS {sale.delivery_fee:,.2f}"])
+    totals_data.append(['TOTAL:', f"GHS {sale.total:,.2f}"])
     if sale.payment_method != 'credit':
-        totals_data.append([f'Paid ({sale.get_payment_method_display()}):', f"GH₵{sale.amount_paid:,.2f}"])
+        totals_data.append([f'Paid ({sale.get_payment_method_display()}):', f"GHS {sale.amount_paid:,.2f}"])
+    elif sale.amount_paid > 0:
+        totals_data.append(['Paid now:', f"GHS {sale.amount_paid:,.2f}"])
     if sale.change_given:
-        totals_data.append(['Change:', f"GH₵{sale.change_given:,.2f}"])
+        totals_data.append(['Change:', f"GHS {sale.change_given:,.2f}"])
     if sale.is_credit:
-        totals_data.append(['Balance Due:', f"GH₵{sale.balance_due:,.2f}"])
+        totals_data.append(['Balance Due:', f"GHS {sale.balance_due:,.2f}"])
         if sale.credit_due_date:
             totals_data.append(['Due Date:', sale.credit_due_date.strftime('%d %b %Y')])
 
@@ -153,7 +169,9 @@ def build_receipt_pdf(sale):
     story.append(Spacer(1, 4 * mm))
     story.append(HRFlowable(width="100%", thickness=0.5))
     story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph("Thank you for shopping with us!", small_center))
+    story.append(Paragraph(
+        (shop.receipt_footer if shop and shop.receipt_footer else "Thank you for shopping with us!"),
+        small_center))
     if shop and shop.whatsapp:
         story.append(Paragraph(f"WhatsApp: {shop.whatsapp}", small_center))
 
@@ -195,7 +213,7 @@ def build_warranty_card_pdf(sale_item):
 
     story = [
         Paragraph("WARRANTY CARD", bold_center),
-        Paragraph(shop.name if shop else "Ericus Electrical", small_center),
+        Paragraph(shop.name if shop else "Adjei’s God First Ventures", small_center),
         Spacer(1, 3 * mm),
         HRFlowable(width="100%"),
         Spacer(1, 3 * mm),

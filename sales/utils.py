@@ -48,7 +48,7 @@ def clear_cart(request):
 @transaction.atomic
 def build_sale_from_cart(cart, payment_method, cash_tendered=None,
                           momo_amount=None, momo_reference='',
-                          credit_due_date=None, user=None):
+                          credit_due_date=None, user=None, part_paid=0):
     """
     The main checkout function. Takes a CartSession and payment details,
     creates Sale + SaleItems + Payments, deducts stock, and returns the Sale.
@@ -77,10 +77,11 @@ def build_sale_from_cart(cart, payment_method, cash_tendered=None,
         change = cash_tendered - total
         amount_paid = total
     elif payment_method == 'momo':
-        if momo_amount < total:
-            raise ValueError(
-                f"MoMo amount (GH₵{momo_amount}) is less than total (GH₵{total})."
-            )
+        # A plain MoMo sale is paid in full via MoMo - there is no separate
+        # "MoMo amount" field on the checkout form for this payment method
+        # (that field only exists for 'split' payments), so it must not be
+        # validated against the total here. Doing so previously caused every
+        # plain MoMo checkout to fail regardless of what the cashier entered.
         change = Decimal('0')
         amount_paid = total
     elif payment_method == 'split':
@@ -94,12 +95,16 @@ def build_sale_from_cart(cart, payment_method, cash_tendered=None,
         if not cart.customer:
             raise ValueError("Credit sales require a customer to be selected.")
         customer = cart.customer
-        if customer.is_over_credit_limit:
+        part_paid = min(Decimal(str(part_paid or 0)), total)
+        owed = total - part_paid
+        if owed <= 0:
+            raise ValueError("Nothing is owed - use Cash instead.")
+        if customer.credit_limit > 0 and (customer.credit_balance + owed) > customer.credit_limit:
             raise ValueError(
-                f"{customer.full_name} has exceeded their credit limit. "
-                f"Outstanding: GH₵{customer.credit_balance}, Limit: GH₵{customer.credit_limit}."
+                f"{customer.full_name} would go over the credit limit. "
+                f"Already owes {customer.credit_balance}, limit is {customer.credit_limit}."
             )
-        amount_paid = Decimal('0')
+        amount_paid = part_paid
         change = Decimal('0')
     else:
         raise ValueError(f"Unknown payment method: {payment_method}")
@@ -133,6 +138,15 @@ def build_sale_from_cart(cart, payment_method, cash_tendered=None,
 
     for item in cart.items_json:
         product = Product.objects.select_for_update().get(pk=item['product_id'])
+        try:
+            available = product.stock_level.quantity
+        except Exception:
+            available = 0
+        if available < item['quantity']:
+            raise ValueError(
+                f"Not enough stock for {product.name}: {available} left, "
+                f"{item['quantity']} in cart."
+            )
         product_unit = None
         if item.get('product_unit_id'):
             product_unit = ProductUnit.objects.get(pk=item['product_unit_id'])
@@ -177,9 +191,11 @@ def build_sale_from_cart(cart, payment_method, cash_tendered=None,
             Payment.objects.create(sale=sale, method='momo', amount=momo_amount,
                                     momo_reference=momo_reference)
     elif payment_method == 'credit':
-        Payment.objects.create(sale=sale, method='credit', amount=Decimal('0'))
-        # Add to customer debt
-        cart.customer.add_credit(total)
+        if amount_paid > 0:
+            Payment.objects.create(sale=sale, method='cash', amount=amount_paid)
+        Payment.objects.create(sale=sale, method='credit', amount=total - amount_paid)
+        # Add only the unpaid part to the customer's debt
+        cart.customer.add_credit(total - amount_paid)
 
     # ── Award loyalty points ──────────────────────────────────────────────────
     if cart.customer and payment_method != 'credit':
@@ -324,4 +340,15 @@ def get_cash_position(date=None):
         .filter(created_at__date=date, payment_method__in=['cash', 'split'])
         .aggregate(total=Sum('change_given'))['total'] or Decimal('0')
     )
-    return cash_in - change_out
+    # Cash payments are stored net of change already, so change must not be
+    # subtracted a second time.
+    try:
+        from returns.models import Return
+        cash_refunds = (
+            Return.objects
+            .filter(status='resolved', resolution='refund_cash', return_date=date)
+            .aggregate(total=Sum('refund_amount'))['total'] or Decimal('0')
+        )
+    except Exception:
+        cash_refunds = Decimal('0')
+    return cash_in - cash_refunds

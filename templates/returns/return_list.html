@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Returns - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Returns{% endblock %}
+{% block nav_returns %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'returns:return_create' %}" class="btn btn-primary btn-sm">+ New Return</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-3">
+  <div class="card-body" style="padding:16px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="font-size:15px;color:var(--text2);max-width:560px;">
+        A customer brings an item back? Tap the green button, find the receipt, and follow the steps.
+      </div>
+      <a href="{% url 'returns:return_create' %}" class="btn btn-success" style="padding:14px 22px;font-size:17px;">+ New Return</a>
+    </div>
+  </div>
+</div>
+
+{% if summary %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
+  <div class="card"><div class="card-body" style="padding:14px 18px;"><div class="text-muted text-sm">Returns in total</div><div style="font-size:26px;font-weight:800;">{{ summary.total_returns }}</div></div></div>
+  <div class="card"><div class="card-body" style="padding:14px 18px;"><div class="text-muted text-sm">Waiting for you</div><div style="font-size:26px;font-weight:800;color:{% if summary.pending_returns %}#e67e22{% else %}#28a745{% endif %};">{{ summary.pending_returns }}</div></div></div>
+  <div class="card"><div class="card-body" style="padding:14px 18px;"><div class="text-muted text-sm">Paid back this month</div><div style="font-size:26px;font-weight:800;">GHS {{ summary.month_refunds|floatformat:2 }}</div></div></div>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search return number or item..." style="max-width:260px;">
+      <select name="status" class="form-control" style="max-width:190px;">
+        <option value="">All</option>
+        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Waiting for owner</option>
+        <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>Done</option>
+        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+      <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="form-control" style="max-width:170px;">
+      <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control" style="max-width:170px;">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <a href="{% url 'returns:return_list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Returned items</h3><span class="text-muted text-sm">{{ page_obj.paginator.count }} return(s)</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Return no.</th><th>Receipt</th><th>Item</th><th>Qty</th><th>What happened</th><th>Amount</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in page_obj %}
+        <tr>
+          <td class="text-sm">{{ r.return_date|date:"d M Y" }}</td>
+          <td style="font-weight:bold;">{{ r.return_number }}</td>
+          <td class="text-sm">{{ r.sale.receipt_number }}</td>
+          <td>{{ r.product.name }}</td>
+          <td>{{ r.quantity }}</td>
+          <td class="text-sm">{% if r.resolution == 'store_credit' %}Taken off debt{% elif r.resolution %}{{ r.get_resolution_display }}{% else %}-{% endif %}</td>
+          <td><b>GHS {{ r.refund_amount|floatformat:2 }}</b></td>
+          <td>
+            {% if r.status == 'pending' %}<span class="badge badge-warning">Waiting for owner</span>
+            {% elif r.status == 'resolved' %}<span class="badge badge-success">Done</span>
+            {% elif r.status == 'rejected' %}<span class="badge badge-danger">Rejected</span>
+            {% else %}<span class="badge badge-secondary">{{ r.get_status_display }}</span>{% endif %}
+          </td>
+          <td><a href="{% url 'returns:return_detail' r.pk %}" class="btn btn-sm btn-primary">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted" style="padding:40px;">No returns yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}&status={{ request.GET.status }}" class="page-link">&#8249;</a>{% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    <span class="page-link active">{{ page_obj.number }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}&status={{ request.GET.status }}" class="page-link">&#8250;</a>{% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -16,7 +16,8 @@ from audit.utils import log_action
 
 @login_required
 def product_list(request):
-    products = Product.objects.select_related('category').filter(is_active=True)
+    products = Product.objects.select_related('category').filter(
+        is_active=(request.GET.get('status', '') != 'inactive'))
 
     # Search
     q = request.GET.get('q', '').strip()
@@ -34,10 +35,32 @@ def product_list(request):
     if category_id:
         products = products.filter(category_id=category_id)
 
-    # Filter low stock
-    if request.GET.get('low_stock'):
-        low_stock_ids = [p.id for p in products if p.is_low_stock]
-        products = products.filter(id__in=low_stock_ids)
+    # Filter by stock level (uses the same number the page shows)
+    stock_filter = request.GET.get('stock', '')
+    if request.GET.get('low_stock') or request.GET.get('low_stock_only'):
+        stock_filter = 'low'
+    if stock_filter in ('low', 'ok', 'out'):
+        keep_ids = []
+        for p in products:
+            qty = p.current_stock
+            if stock_filter == 'out' and qty == 0:
+                keep_ids.append(p.id)
+            elif stock_filter == 'low' and qty <= p.reorder_point:
+                keep_ids.append(p.id)
+            elif stock_filter == 'ok' and qty > p.reorder_point:
+                keep_ids.append(p.id)
+        products = products.filter(id__in=keep_ids)
+
+    # Numbers for the four boxes at the top of the page
+    _total_products = 0
+    _low_stock_count = 0
+    _stock_value = 0
+    for p in Product.objects.filter(is_active=True):
+        qty = p.current_stock
+        _total_products += 1
+        if qty <= p.reorder_point:
+            _low_stock_count += 1
+        _stock_value += qty * p.cost_price
 
     # Paginate
     paginator = Paginator(products, 20)
@@ -50,6 +73,10 @@ def product_list(request):
         'products':   products,
         'categories': categories,
         'q':          q,
+        'total_products':   _total_products,
+        'low_stock_count':  _low_stock_count,
+        'stock_value':      f'{_stock_value:,.2f}',
+        'total_categories': categories.count(),
     })
 
 

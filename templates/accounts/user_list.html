@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}Users - Ericus POS{% endblock %}
+{% block title %}Users - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}User Management{% endblock %}
 {% block nav_settings %}active{% endblock %}
 
@@ -50,6 +50,7 @@
           <td style="padding:12px 16px;">
             <div style="display:flex;gap:6px;justify-content:flex-end;">
               <a href="{% url 'user_edit' u.id %}" class="btn btn-outline btn-sm">Edit</a>
+                <a href="{% url 'forgot_password' %}?username={{ u.username }}" class="btn btn-outline btn-sm">Reset password</a>
               {% if not u.is_owner %}
               <form method="post" action="{% url 'user_toggle_active' u.id %}" style="display:inline;">
                 {% csrf_token %}

@@ -2,95 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Receipt #{{ sale.id }}</title>
+  <title>Receipt {{ sale.receipt_number }}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    @page { size: 80mm auto; margin: 0; }
     body {
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      width: 80mm;        /* Toggle to 58mm if narrow-roll hardware is deployed */
+      font-size: 12px;
+      width: 80mm;          /* change to 58mm for narrow-roll printers */
       padding: 4mm;
       background: #fff;
       color: #000;
-      line-height: 1.3;
+      line-height: 1.35;
     }
-
     .center  { text-align: center; }
     .right   { text-align: right; }
     .bold    { font-weight: bold; }
     .divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; }
-
-    .shop-name { font-size: 15px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
-    .shop-sub  { font-size: 10px; margin-bottom: 1px; }
-
-    table { width: 100%; border-collapse: collapse; margin: 2px 0; }
-    th, td { font-size: 11px; padding: 2px 0; vertical-align: top; }
-    
-    .qty-col   { width: 12%; text-align: left; }
-    .desc-col  { width: 58%; text-align: left; }
+    .receipt-logo { display: block; margin: 0 auto 4px; max-width: 46mm; max-height: 24mm; filter: grayscale(100%) contrast(160%); }
+    .shop-name { font-size: 16px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
+    .shop-sub  { font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { font-size: 12px; padding: 2px 0; vertical-align: top; }
+    .qty-col   { width: 14%; text-align: left; }
+    .desc-col  { width: 56%; text-align: left; }
     .price-col { width: 30%; text-align: right; }
-
-    .total-row td { font-weight: bold; font-size: 12px; padding-top: 4px; }
-    .payment-table td { font-size: 10px; padding: 1px 0; }
-    .footer { font-size: 10px; margin-top: 10px; line-height: 1.4; }
-
+    .total-row td { font-weight: bold; font-size: 15px; padding-top: 4px; }
+    .small { font-size: 10px; }
+    .footer { font-size: 11px; margin-top: 8px; }
+    .no-print { text-align: center; margin: 10px 0; }
+    .no-print button { padding: 8px 18px; font-size: 14px; }
     @media print {
-      body { width: 100%; padding: 0; }
-      @page { margin: 0; size: 80mm auto; }
+      body { width: 100%; padding: 0 2mm; }
+      .no-print { display: none; }
     }
   </style>
 </head>
 <body>
 
-  {# ── SHOP HEADER ── #}
+  <div class="no-print"><button onclick="window.print()">Print</button></div>
+
   <div class="center">
+    {% if shop and shop.logo %}<img class="receipt-logo" src="{{ shop.logo.url }}" alt="">{% endif %}
     {% if shop %}
       <div class="shop-name">{{ shop.name }}</div>
       {% if shop.address %}<div class="shop-sub">{{ shop.address }}</div>{% endif %}
       {% if shop.phone %}<div class="shop-sub">Tel: {{ shop.phone }}</div>{% endif %}
     {% else %}
-      <div class="shop-name">POS Receipt</div>
+      <div class="shop-name">Receipt</div>
     {% endif %}
   </div>
 
   <div class="divider"></div>
 
-  {# ── SALE META ── #}
   <table>
-    <tr>
-      <td>Receipt #</td>
-      <td class="right bold">{{ sale.id }}</td>
-    </tr>
-    <tr>
-      <td>Date</td>
-      <td class="right">{{ sale.created_at|date:"d M Y H:i" }}</td>
-    </tr>
-    <tr>
-      <td>Cashier</td>
-      <td class="right">{{ sale.attendant.get_full_name|default:sale.attendant.username }}</td>
-    </tr>
-    {% if sale.customer %}
-    <tr>
-      <td>Customer</td>
-      <td class="right">{{ sale.customer }}</td>
-    </tr>
-    {% endif %}
-    <tr>
-      <td>Type</td>
-      <td class="right">{{ sale.sale_type|capfirst }}</td>
-    </tr>
+    <tr><td>Receipt</td><td class="right bold">{{ sale.receipt_number }}</td></tr>
+    <tr><td>Date</td><td class="right">{{ sale.created_at|date:"d M Y H:i" }}</td></tr>
+    <tr><td>Cashier</td><td class="right">{{ sale.attendant.full_name|default:sale.attendant_username }}</td></tr>
+    {% if sale.customer_name %}<tr><td>Customer</td><td class="right">{{ sale.customer_name }}</td></tr>{% endif %}
   </table>
 
   <div class="divider"></div>
 
-  {# ── ITEMS ── #}
   <table>
     <thead>
       <tr>
         <th class="qty-col">Qty</th>
         <th class="desc-col">Item</th>
-        <th class="price-col">Total</th>
+        <th class="price-col">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -98,10 +77,10 @@
       <tr>
         <td class="qty-col">{{ item.quantity }}</td>
         <td class="desc-col">
-          {{ item.product.name }}
-          <br><span style="font-size: 10px; color: #444;">@ {{ item.unit_price }}</span>
+          {{ item.product_name }}
+          <br><span class="small">@ {{ item.unit_price|floatformat:2 }}{% if item.serial_number %} &middot; S/N {{ item.serial_number }}{% endif %}</span>
         </td>
-        <td class="price-col">{{ item.subtotal }}</td>
+        <td class="price-col">{{ item.subtotal|floatformat:2 }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -109,86 +88,53 @@
 
   <div class="divider"></div>
 
-  {# ── TOTALS ── #}
   <table>
-    <tr>
-      <td>Subtotal</td>
-      <td class="right">{{ sale.subtotal }}</td>
-    </tr>
-    {% if sale.discount_amount %}
-    <tr>
-      <td>Discount</td>
-      <td class="right">- {{ sale.discount_amount }}</td>
-    </tr>
-    {% endif %}
-    {% if sale.delivery_fee %}
-    <tr>
-      <td>Delivery Fee</td>
-      <td class="right">{{ sale.delivery_fee }}</td>
-    </tr>
-    {% endif %}
-    {% if sale.installation_fee %}
-    <tr>
-      <td>Installation Fee</td>
-      <td class="right">{{ sale.installation_fee }}</td>
-    </tr>
-    {% endif %}
-    <tr class="total-row">
-      <td>TOTAL AMOUNT</td>
-      <td class="right">{{ sale.total_amount }}</td>
-    </tr>
+    <tr><td>Subtotal</td><td class="right">{{ sale.subtotal|floatformat:2 }}</td></tr>
+    {% if sale.discount_amount %}<tr><td>Discount</td><td class="right">- {{ sale.discount_amount|floatformat:2 }}</td></tr>{% endif %}
+    {% if sale.delivery_fee %}<tr><td>Delivery</td><td class="right">{{ sale.delivery_fee|floatformat:2 }}</td></tr>{% endif %}
+    {% if sale.installation_fee %}<tr><td>Installation</td><td class="right">{{ sale.installation_fee|floatformat:2 }}</td></tr>{% endif %}
+    <tr class="total-row"><td>TOTAL (GHS)</td><td class="right">{{ sale.total|floatformat:2 }}</td></tr>
   </table>
-
-  {% if payments %}
-    <div class="divider"></div>
-
-    {# ── PAYMENTS MATRIX ── #}
-    <table class="payment-table">
-      <thead>
-        <tr>
-          <th style="text-align: left; font-size: 10px;" class="bold">Settlement Channel</th>
-          <th style="text-align: right; font-size: 10px;" class="bold">Captured</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for payment in payments %}
-        <tr>
-          <td class="bold">{{ payment.method|upper }}</td>
-          <td class="right bold">{{ payment.amount }}</td>
-        </tr>
-        {% if payment.cash_tendered %}
-        <tr>
-          <td style="padding-left: 4px;">Tendered Cash Amount</td>
-          <td class="right">{{ payment.cash_tendered }}</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 4px;">Change Due Dispensed</td>
-          <td class="right bold">{{ payment.change_due }}</td>
-        </tr>
-        {% endif %}
-        {% if payment.momo_reference %}
-        <tr>
-          <td style="padding-left: 4px;">Mobile Network Reference</td>
-          <td class="right">{{ payment.momo_reference }}</td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
 
   <div class="divider"></div>
 
-  {# ── FOOTER ── #}
-  <div class="center footer">
-    {% if shop and shop.receipt_footer %}
-      {{ shop.receipt_footer }}
-    {% else %}
-      Thank you for your business!
+  <table>
+    {% for payment in payments %}
+      {% if payment.method != 'credit' %}
+      <tr>
+        <td>{{ payment.get_method_display }}</td>
+        <td class="right">{{ payment.amount|floatformat:2 }}</td>
+      </tr>
+      {% if payment.momo_reference %}
+      <tr><td class="small" colspan="2">Ref: {{ payment.momo_reference }}</td></tr>
+      {% endif %}
+      {% endif %}
+    {% endfor %}
+    {% if cash_received %}
+    <tr><td>Cash received</td><td class="right">{{ cash_received|floatformat:2 }}</td></tr>
     {% endif %}
-    <br>
-    <small style="font-size: 9px; display: block; margin-top: 4px;">Powered by Ericus POS</small>
+    {% if sale.change_given %}
+    <tr class="bold"><td>Change</td><td class="right">{{ sale.change_given|floatformat:2 }}</td></tr>
+    {% endif %}
+    {% if sale.is_credit %}
+    <tr class="bold"><td>ON CREDIT</td><td class="right">{{ sale.balance_due|floatformat:2 }}</td></tr>
+    {% if sale.credit_due_date %}<tr><td class="small" colspan="2">Due: {{ sale.credit_due_date|date:"d M Y" }}</td></tr>{% endif %}
+    {% endif %}
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="center footer">
+    {% if shop and shop.receipt_footer %}{{ shop.receipt_footer }}{% else %}Thank you for your business!{% endif %}
   </div>
 
+  <script>
+    // Auto-print only when opened by the POS (?autoprint=1)
+    if (location.search.indexOf('autoprint=1') !== -1) {
+      window.addEventListener('load', function () {
+        setTimeout(function () { window.focus(); window.print(); }, 150);
+      });
+    }
+  </script>
 </body>
 </html>

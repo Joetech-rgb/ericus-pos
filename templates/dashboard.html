@@ -1,5 +1,5 @@
-﻿{% extends "base.html" %}
-{% block title %}Dashboard — Ericus POS{% endblock %}
+{% extends "base.html" %}
+{% block title %}Dashboard — KoahCloud POS{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block nav_dash %}active{% endblock %}
 
@@ -50,7 +50,7 @@
   <div>
     <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.5px;line-height:1.1;">
       {% if request.user.is_owner %}
-        {{ request.user.shop.name|default:"Ericus Enterprise" }}
+        {{ request.user.shop.name|default:"Powered by KoahCloud" }}
       {% else %}
         Welcome, {{ request.user.full_name }}
       {% endif %}
@@ -82,10 +82,31 @@
 </div>
 
 
-{# ════════════════════════════════════════════════════════════════════════════ #}
+{# ---------------------------------------------------------------------------- #}
 {#  OWNER DASHBOARD                                                            #}
-{# ════════════════════════════════════════════════════════════════════════════ #}
+{# ---------------------------------------------------------------------------- #}
 {% if request.user.is_owner %}
+
+<style>
+  .alert-tile { display: block; text-decoration: none; color: #fff; background: var(--tile, #28a745);
+    border-radius: 14px; padding: 18px 20px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+  .alert-tile:hover { filter: brightness(1.07); }
+  .alert-tile .at-title { font-size: 14px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; opacity: .95; }
+  .alert-tile .at-big { font-size: 34px; font-weight: 800; margin: 4px 0; }
+  .alert-tile .at-sub { font-size: 14px; opacity: .95; }
+</style>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px;">
+  <a href="/inventory/?status=low" class="alert-tile" style="--tile: {% if low_stock_count %}#dc3545{% else %}#28a745{% endif %};">
+    <div class="at-title">Low Stock</div>
+    <div class="at-big">{{ low_stock_count }} item{{ low_stock_count|pluralize }}</div>
+    <div class="at-sub">{% if low_stock_count %}Tap to see what to restock{% else %}All stock is fine{% endif %}</div>
+  </a>
+  <a href="{% url 'customers:list' %}?balance=1" class="alert-tile" style="--tile: {% if owing_count %}#e67e22{% else %}#28a745{% endif %};">
+    <div class="at-title">Customers Owe You</div>
+    <div class="at-big">GHS {{ total_owed }}</div>
+    <div class="at-sub">{{ owing_count }} customer{{ owing_count|pluralize }} &middot; {% if owing_count %}Tap to collect{% else %}Nobody owes you{% endif %}</div>
+  </a>
+</div>
 
 <!-- KPI Grid -->
 <div class="kpi-grid">
@@ -128,7 +149,7 @@
 <div class="card mb-3" style="border-left:3px solid var(--accent);">
   <div class="card-body" style="padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <span style="font-size:12px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-right:6px;">Quick Actions</span>
-    <a href="{% url 'sales:pos' %}" class="btn btn-primary">⊕ New Sale</a>
+    <a href="{% url 'sales:pos' %}" class="btn btn-primary">+ New Sale</a>
     <a href="{% url 'customers:list' %}" class="btn btn-success">+ Add Customer</a>
     <a href="{% url 'product_list' %}" class="btn btn-warning">+ Add Product</a>
     <a href="/purchases/create/" class="btn btn-outline">+ Purchase Order</a>
@@ -198,7 +219,7 @@
 <div class="grid-2" style="gap:16px;margin-bottom:16px;">
   <div class="card" style="border-top:3px solid #ffc107;">
     <div class="card-head">
-      <h3>⚠ Low Stock Alerts</h3>
+      <h3>Low Stock Alerts</h3>
       <a href="/inventory/?status=low" class="btn btn-sm btn-outline">Inventory</a>
     </div>
     <div class="table-wrap">
@@ -214,7 +235,7 @@
             <td style="text-align:right;color:var(--text3);" class="tnum">{{ p.reorder_point }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="text-center text-muted" style="padding:28px;">✓ All stock levels healthy</td></tr>
+          <tr><td colspan="3" class="text-center text-muted" style="padding:28px;">All stock levels healthy</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -301,7 +322,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-center text-muted" style="padding:28px;">✓ No overdue debts</td></tr>
+          <tr><td colspan="4" class="text-center text-muted" style="padding:28px;">No overdue debts</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -310,10 +331,18 @@
 </div>
 
 
-{# ════════════════════════════════════════════════════════════════════════════ #}
+{# ---------------------------------------------------------------------------- #}
 {#  ATTENDANT DASHBOARD                                                        #}
-{# ════════════════════════════════════════════════════════════════════════════ #}
+{# ---------------------------------------------------------------------------- #}
 {% else %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px;">
+  <a href="/inventory/?status=low" class="alert-tile" style="--tile: {% if low_stock_count %}#dc3545{% else %}#28a745{% endif %};">
+    <div class="at-title">Low Stock</div>
+    <div class="at-big">{{ low_stock_count }} item{{ low_stock_count|pluralize }}</div>
+    <div class="at-sub">{% if low_stock_count %}Tap to see what to restock{% else %}All stock is fine{% endif %}</div>
+  </a>
+</div>
 
 <!-- Attendant KPI Grid -->
 <div class="kpi-grid-attendant">
@@ -338,7 +367,7 @@
 <div class="card mb-3" style="border-left:3px solid var(--accent);">
   <div class="card-body" style="padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <span style="font-size:12px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-right:6px;">Quick Actions</span>
-    <a href="{% url 'sales:pos' %}" class="btn btn-primary">⊕ New Sale</a>
+    <a href="{% url 'sales:pos' %}" class="btn btn-primary">+ New Sale</a>
     <a href="{% url 'customers:list' %}" class="btn btn-success">+ Add Customer</a>
     <a href="{% url 'product_list' %}" class="btn btn-warning">View Products</a>
   </div>
@@ -379,7 +408,7 @@
 
   <div class="card" style="border-top:3px solid #ffc107;">
     <div class="card-head">
-      <h3>⚠ Low Stock Alerts</h3>
+      <h3>Low Stock Alerts</h3>
       <a href="/inventory/?status=low" class="btn btn-sm btn-outline">Inventory</a>
     </div>
     <div class="table-wrap">
@@ -395,7 +424,7 @@
             <td style="text-align:right;color:var(--text3);" class="tnum">{{ p.reorder_point }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="3" class="text-center text-muted" style="padding:28px;">✓ All stock levels healthy</td></tr>
+          <tr><td colspan="3" class="text-center text-muted" style="padding:28px;">All stock levels healthy</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -405,4 +434,46 @@
 </div>
 
 {% endif %}
+<style id="dash-premium">
+/* no coloured edge lines on cards */
+.card[style*="border-top"],.card[style*="border-left"]{border:0 !important;}
+
+/* status tiles: soft, tinted, Apple-style (colour still shows the status) */
+.alert-tile{
+  background:color-mix(in srgb,var(--tile) 11%,var(--card-bg)) !important;
+  color:var(--text) !important;border-radius:22px !important;padding:22px 24px !important;
+  box-shadow:var(--shadow) !important;transition:transform .15s,box-shadow .15s;
+}
+.alert-tile:hover{filter:none !important;transform:translateY(-2px);box-shadow:var(--shadow-md) !important;}
+.alert-tile .at-title{color:var(--tile);opacity:1 !important;font-size:12px !important;letter-spacing:.6px !important;}
+.alert-tile .at-big{color:var(--tile);font-size:36px !important;font-weight:700 !important;letter-spacing:-1px;}
+.alert-tile .at-sub{color:var(--text2);opacity:1 !important;font-size:13px !important;}
+
+/* KPI cards */
+.stat-box{border-radius:20px;padding:20px 22px;}
+.s-label{letter-spacing:.5px;}
+.s-value{font-weight:700;}
+
+/* cards and tables */
+.card{border-radius:22px;overflow:hidden;}
+.card-head{padding:18px 22px 12px;border-bottom:0 !important;}
+.card-head h3{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.card-body{padding:18px 22px;}
+thead th{border-bottom:1px solid var(--border) !important;padding:10px 22px;}
+tbody td{padding:13px 22px;}
+tbody tr:last-child td{border-bottom:0 !important;}
+tbody tr:hover{background:rgba(0,0,0,.03);}
+[data-theme="dark"] tbody tr:hover{background:rgba(255,255,255,.04);}
+
+/* quick actions: pill buttons in one soft bar */
+.card.mb-3 .card-body{padding:16px 22px !important;}
+.btn-success{background:#34c759;}
+.btn-warning{background:#ffb340;color:#1d1d1f;}
+.btn-danger{background:#ff453a;}
+.badge{padding:4px 11px;}
+
+/* header */
+.dashboard-header{margin-bottom:26px;}
+.dashboard-header form .form-control{width:150px;}
+</style>
 {% endblock %}

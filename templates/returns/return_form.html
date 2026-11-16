@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}New Return - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}New Return{% endblock %}
+{% block nav_returns %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'returns:return_list' %}" class="btn btn-outline btn-sm">&#8592; Back</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .rt { max-width: 720px; }
+  .rt h4 { margin: 0 0 10px; font-size: 18px; }
+  .rt .step { display: none; }
+  .rt .step.on { display: block; }
+  .rt input[type=text], .rt select, .rt textarea { width: 100%; padding: 14px; font-size: 18px; border: 2px solid var(--border);
+    border-radius: 10px; background: var(--card-bg); color: var(--text); font-family: inherit; }
+  .rt .big { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-family: inherit; }
+  .rt .green { background: #28a745; color: #fff; }
+  .rt .blue { background: #4a6cf7; color: #fff; }
+  .rt .pick { display: block; width: 100%; text-align: left; padding: 14px 16px; margin-bottom: 8px; font-size: 16px; font-family: inherit;
+    border: 2px solid var(--border); border-radius: 12px; background: var(--card-bg); color: var(--text); cursor: pointer; }
+  .rt .pick.sel { border-color: #28a745; background: #e9f7ee; color: #1c7a36; }
+  .rt .pick[disabled] { opacity: .45; cursor: not-allowed; }
+  .rt .qty { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
+  .rt .qty button { width: 52px; height: 52px; font-size: 26px; border-radius: 12px; border: 2px solid var(--border); background: var(--card-bg); color: var(--text); cursor: pointer; }
+  .rt .qty span { font-size: 26px; font-weight: 800; min-width: 40px; text-align: center; }
+  .rt .amount { text-align: center; font-size: 30px; font-weight: 800; margin: 14px 0; }
+  .rt .muted { color: var(--text3); font-size: 14px; }
+</style>
+
+<div class="rt">
+  <form method="post" id="retForm" onsubmit="return checkReady();">
+    {% csrf_token %}
+    <input type="hidden" name="sale_item_id" id="f_item">
+    <input type="hidden" name="quantity" id="f_qty">
+    <input type="hidden" name="outcome" id="f_outcome">
+
+    <div class="card mb-3"><div class="card-body">
+      <h4>1. Find the receipt</h4>
+      <input type="text" id="q" placeholder="Type the receipt number (or the last digits)" autocomplete="off">
+      <button type="button" class="big blue" style="margin-top:10px;" onclick="findSale()">Find</button>
+      <div id="found" style="margin-top:12px;"></div>
+    </div></div>
+
+    <div class="step card mb-3" id="stepItems"><div class="card-body">
+      <h4>2. Which item is coming back?</h4>
+      <div class="muted" id="saleInfo"></div>
+      <div id="items" style="margin-top:10px;"></div>
+      <div class="qty" id="qtyRow" style="display:none;">
+        <span class="muted" style="min-width:auto;font-size:16px;">How many?</span>
+        <button type="button" onclick="chg(-1)">&minus;</button><span id="qtyShow">1</span><button type="button" onclick="chg(1)">+</button>
+      </div>
+    </div></div>
+
+    <div class="step card mb-3" id="stepWhy"><div class="card-body">
+      <h4>3. Why is it coming back?</h4>
+      <select name="reason" id="reason" onchange="reasonChanged()">
+        {% for key, label in reasons %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;font-size:17px;">
+        <input type="checkbox" name="put_back" value="1" id="putBack" style="width:24px;height:24px;" checked>
+        Put the item back in stock (tick only if it is good to sell again)
+      </label>
+      <input type="text" name="note" placeholder="Note (optional)" style="margin-top:12px;">
+    </div></div>
+
+    <div class="step card mb-3" id="stepOut"><div class="card-body">
+      <h4>4. What happens now?</h4>
+      <button type="button" class="pick" data-o="refund_cash" onclick="setOut('refund_cash')">Give cash back</button>
+      <button type="button" class="pick" data-o="refund_momo" onclick="setOut('refund_momo')">Send MoMo back</button>
+      <button type="button" class="pick" data-o="exchange" onclick="setOut('exchange')">Swap for another item (no money now; sell the new item normally)</button>
+      <button type="button" class="pick" data-o="store_credit" id="debtBtn" onclick="setOut('store_credit')">Take it off what the customer owes</button>
+      <div class="muted" id="debtNote"></div>
+      <div class="amount" id="amount">GHS 0.00</div>
+      <button type="submit" class="big green" id="goBtn">{% if request.user.is_owner %}Complete Return{% else %}Send to owner{% endif %}</button>
+      {% if not request.user.is_owner %}<div class="muted" style="margin-top:8px;text-align:center;">The owner approves it before any money or stock changes.</div>{% endif %}
+    </div></div>
+  </form>
+</div>
+
+<script>
+var sale = null, items = [], cur = null, qty = 1, outcome = '';
+function money(n) { return 'GHS ' + Number(n).toFixed(2); }
+function on(id, v) { document.getElementById(id).classList.toggle('on', v); }
+
+function findSale() {
+  var q = document.getElementById('q').value.trim();
+  if (!q) { alert('Type the receipt number first.'); return; }
+  fetch("{% url 'returns:find_sale' %}?q=" + encodeURIComponent(q))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var box = document.getElementById('found');
+      if (!d.sales.length) { box.innerHTML = '<div class="muted">No receipt found. Check the number.</div>'; return; }
+      box.innerHTML = '';
+      d.sales.forEach(function (s) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'pick';
+        b.textContent = s.receipt + '  |  ' + s.date + '  |  ' + s.customer + '  |  ' + money(s.total);
+        b.onclick = function () { pickSale(s.id); };
+        box.appendChild(b);
+      });
+    });
+}
+
+function pickSale(id) {
+  fetch("{% url 'returns:sale_detail_ajax' %}?sale_id=" + id)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      sale = d.sale; items = d.items; cur = null; outcome = '';
+      document.getElementById('found').innerHTML = '';
+      document.getElementById('saleInfo').textContent = sale.receipt + '  |  ' + sale.date + '  |  ' + sale.customer;
+      var box = document.getElementById('items'); box.innerHTML = '';
+      items.forEach(function (it, i) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'pick'; b.setAttribute('data-i', i);
+        b.textContent = it.name + '  |  bought ' + it.qty_sold + '  |  ' + money(it.unit_net) + ' each' + (it.qty_left < 1 ? '  |  already returned' : '');
+        if (it.qty_left < 1) b.disabled = true;
+        b.onclick = function () { pickItem(i); };
+        box.appendChild(b);
+      });
+      on('stepItems', true); on('stepWhy', false); on('stepOut', false);
+      document.getElementById('qtyRow').style.display = 'none';
+    });
+}
+
+function pickItem(i) {
+  cur = items[i]; qty = 1; outcome = '';
+  document.querySelectorAll('#items .pick').forEach(function (b) { b.classList.toggle('sel', b.getAttribute('data-i') == i); });
+  document.getElementById('qtyRow').style.display = 'flex';
+  document.getElementById('f_item').value = cur.id;
+  on('stepWhy', true); on('stepOut', true);
+  document.querySelectorAll('#stepOut .pick').forEach(function (b) { b.classList.remove('sel'); });
+  reasonChanged(); refresh();
+}
+
+function chg(d) { qty = Math.min(cur.qty_left, Math.max(1, qty + d)); refresh(); }
+
+function reasonChanged() {
+  var r = document.getElementById('reason').value;
+  document.getElementById('putBack').checked = (r === 'customer_change_mind' || r === 'wrong_item' || r === 'other');
+}
+
+function setOut(o) {
+  outcome = o;
+  document.querySelectorAll('#stepOut .pick').forEach(function (b) { b.classList.toggle('sel', b.getAttribute('data-o') === o); });
+  refresh();
+}
+
+function refresh() {
+  if (!cur) return;
+  document.getElementById('qtyShow').textContent = qty;
+  document.getElementById('f_qty').value = qty;
+  var amt = (outcome === 'exchange') ? 0 : Number(cur.unit_net) * qty;
+  document.getElementById('amount').textContent = money(amt);
+  var owes = Number(sale.customer_owes || 0), full = Number(cur.unit_net) * qty;
+  var debt = document.getElementById('debtBtn'), note = document.getElementById('debtNote');
+  var ok = sale.has_customer && owes > 0 && owes >= full;
+  debt.disabled = !ok;
+  note.textContent = !sale.has_customer ? 'Taking it off a debt needs a customer on the receipt.'
+    : (owes <= 0 ? 'This customer does not owe anything.' : (owes < full ? 'The customer owes only ' + money(owes) + '.' : 'The customer owes ' + money(owes) + '.'));
+  if (outcome === 'store_credit' && !ok) { outcome = ''; document.querySelectorAll('#stepOut .pick').forEach(function (b) { b.classList.remove('sel'); }); }
+  document.getElementById('f_outcome').value = outcome;
+}
+
+function checkReady() {
+  if (!cur) { alert('Tap the item that is coming back.'); return false; }
+  if (!outcome) { alert('Choose what happens now (cash back, MoMo back, swap or take off debt).'); return false; }
+  document.getElementById('f_outcome').value = outcome;
+  document.getElementById('f_qty').value = qty;
+  return true;
+}
+</script>
+{% endblock %}

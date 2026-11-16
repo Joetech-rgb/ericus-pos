@@ -43,7 +43,7 @@ def sales_summary_report(params):
         total_revenue=Sum(F('quantity') * F('unit_price'), output_field=DecimalField()),
         total_cost=Sum(F('quantity') * F('cost_price'), output_field=DecimalField()),
     )
-    gross_profit = (items['total_revenue'] or 0) - (items['total_cost'] or 0)
+    gross_profit = (totals['gross_revenue'] or 0) - (items['total_cost'] or 0)
 
     daily = sales.values('created_at__date').annotate(
         count=Count('id'),
@@ -73,7 +73,7 @@ def sales_by_product_report(params):
         'product_id', 'product_name', 'product_brand'
     ).annotate(
         units_sold=Sum('quantity'),
-        total_revenue=Sum(F('quantity') * F('unit_price'), output_field=DecimalField()),
+        total_revenue=Sum('subtotal'),
         total_cost=Sum(F('quantity') * F('cost_price'), output_field=DecimalField()),
         transaction_count=Count('sale', distinct=True),
     ).order_by('-total_revenue')
@@ -151,7 +151,7 @@ def inventory_status_report(params):
     for product in products:
         try:
             sl = product.stock_level
-            current_qty = sl.current_quantity
+            current_qty = sl.quantity
         except Exception:
             current_qty = 0
 
@@ -253,7 +253,7 @@ def profit_loss_report(params):
         'date_to': date_to,
         'revenue': revenue,
         'discounts_given': discounts_given,
-        'net_revenue': revenue - discounts_given,
+        'net_revenue': revenue,
         'cogs': cogs,
         'gross_profit': gross_profit,
         'gross_margin_pct': round((gross_profit / revenue * 100), 1) if revenue else 0,

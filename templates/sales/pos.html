@@ -1,5 +1,5 @@
-﻿{% extends "base.html" %}
-{% block title %}POS - Ericus POS{% endblock %}
+{% extends "base.html" %}
+{% block title %}POS - Adjei’s God First Ventures{% endblock %}
 {% block page_title %}Point of Sale{% endblock %}
 {% block nav_pos %}active{% endblock %}
 
@@ -396,8 +396,8 @@
     <div class="cart-header">
       <h3>Current Cart <span id="cartCountBadge" style="font-size: 12px; background: #4a6cf7; color: #fff; border-radius: 12px; padding: 2px 8px; margin-left: 6px; font-weight: bold;">{{ cart.item_count }}</span></h3>
       <div style="display: flex; gap: 8px;">
-        <button class="btn btn-sm btn-outline" onclick="openCustomerModal()" style="padding: 6px 12px;">+ Assign Profile</button>
-        <button class="btn btn-sm btn-danger" onclick="clearCart()" id="clearCartBtn" style="padding: 6px 12px;">Reset</button>
+        <button class="btn btn-sm btn-outline" onclick="openCustomerModal()" style="padding: 6px 12px;">+ Add Customer</button>
+        <button class="btn btn-sm btn-danger" onclick="clearCart()" id="clearCartBtn" style="padding: 6px 12px;">Clear all</button>
       </div>
     </div>
 
@@ -429,7 +429,7 @@
           </div>
           <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
             <span class="ci-subtotal">GHS {{ item.subtotal }}</span>
-            <button class="ci-remove" onclick="removeItem({{ item.product_id }}, {{ item.product_unit_id|default:'null' }})" title="Remove">Ã—</button>
+            <button class="ci-remove" onclick="removeItem({{ item.product_id }}, {{ item.product_unit_id|default:'null' }})" title="Remove">×</button>
           </div>
         </div>
         {% endfor %}
@@ -444,7 +444,7 @@
       <button class="btn btn-sm btn-outline" onclick="applyDiscount()" style="padding: 0 16px;">Apply</button>
     </div>
     <div class="discount-applied" id="discountApplied" style="display: {% if cart.discount_code %}flex{% else %}none{% endif %};">
-      <span>Key Applied: <strong style="text-transform: uppercase;">{{ cart.discount_code }}</strong> â€” GHS {{ cart.discount_amount }}</span>
+      <span>Key Applied: <strong style="text-transform: uppercase;">{{ cart.discount_code }}</strong> — GHS {{ cart.discount_amount }}</span>
       <button style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px; font-weight: bold;" onclick="removeDiscount()">Revoke</button>
     </div>
 
@@ -482,97 +482,145 @@
   </div>
 </div>
 
-<!-- ===== MODAL OVERLAY: CHECKOUT WORKSPACE TERMINAL ===== -->
+<!-- ===== CHECKOUT (simple: Cash default, one big Pay & Print button) ===== -->
+<style>
+  .co-total { text-align: center; font-size: 42px; font-weight: 700; color: #4a6cf7; margin: 4px 0 14px; }
+  .co-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .co-tab { padding: 12px 4px; border: 2px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .co-tab.active { border-color: #28a745; background: #e9f7ee; color: #1c7a36; }
+  .co-input { width: 100%; padding: 14px; font-size: 24px; font-weight: 700; text-align: center; border: 2px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); }
+  .co-input.small { font-size: 16px; font-weight: 400; padding: 10px; }
+  .co-quick { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .co-quick button { flex: 1; min-width: 70px; padding: 12px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--page-bg); color: var(--text); font-weight: 700; font-size: 15px; cursor: pointer; }
+  .co-change { text-align: center; font-size: 20px; font-weight: 700; margin: 8px 0 4px; }
+  .co-sub { font-size: 13px; color: var(--text3); margin: 8px 0 6px; text-align: center; }
+  .co-pay { width: 100%; padding: 18px; font-size: 20px; font-weight: 700; border: none; border-radius: 12px; background: #28a745; color: #fff; cursor: pointer; margin-top: 14px; }
+  .co-pay:disabled { opacity: .6; cursor: wait; }
+  .co-note summary { cursor: pointer; font-size: 13px; color: var(--text3); margin-top: 12px; }
+  .co-note textarea { width: 100%; min-height: 56px; margin-top: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); color: var(--text); }
+  #saleToast { display: none; position: fixed; right: 20px; bottom: 20px; z-index: 900; background: #1c7a36; color: #fff; padding: 14px 20px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.3); min-width: 220px; }
+  #saleToast .st-title { font-weight: 700; font-size: 15px; }
+  #saleToast .st-change { font-size: 26px; font-weight: 700; margin: 4px 0; }
+  #saleToast .st-row { font-size: 12px; opacity: .9; }
+  #saleToast a { color: #fff; text-decoration: underline; }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 auto; max-width: 240px; }
+  .pin-key { padding: 14px; font-size: 20px; font-weight: 700; border: 1px solid var(--border); border-radius: 10px; background: var(--page-bg); color: var(--text); cursor: pointer; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text3); }
+  .pin-dot.filled { background: #4a6cf7; border-color: #4a6cf7; }
+</style>
+
+<style>
+  /* keep the popups in the same font as the rest of the system */
+  #checkoutModal input, #checkoutModal button, #checkoutModal summary,
+  #priceModal input, #priceModal button { font-family: inherit; }
+  .co-tab { font-size: 15px; }
+  .co-owe { text-align: center; font-size: 20px; font-weight: 700; color: #c0392b; margin: 10px 0 8px; }
+  .co-owe-box { border: 2px dashed #c0392b; border-radius: 12px; padding: 12px; margin-top: 10px; }
+  .was-price { color: #c0392b; text-decoration: line-through; margin-left: 6px; }
+  .ci-price { cursor: pointer; }
+  .qty-btn.big { width: 42px; height: 42px; font-size: 22px; border: 2px solid var(--border); }
+  .qty-input { width: 64px; height: 42px; text-align: center; font-size: 18px; font-weight: 700; margin: 0 6px;
+    border: 2px solid var(--border); border-radius: 8px; background: var(--card-bg); color: var(--text); font-family: inherit; }
+  .ci-remove-btn { padding: 8px 12px; border: 2px solid #dc3545; background: transparent; color: #dc3545; border-radius: 8px;
+    font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .ci-remove-btn:hover { background: #dc3545; color: #fff; }
+  .ci-price:hover { text-decoration: underline; }
+  /* product tile selected counter */
+  .product-card.selected { border: 3px solid #28a745; box-shadow: 0 0 0 3px rgba(40,167,69,.18); }
+  .sel-badge { display: none; position: absolute; top: -12px; right: -12px; min-width: 40px; height: 40px;
+    padding: 0 10px; border-radius: 20px; background: #28a745; color: #fff; font-size: 20px; font-weight: 700;
+    align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,.35); z-index: 5; }
+  .product-card.selected .sel-badge { display: flex; }
+  .product-card.pulse { animation: selpulse .25s ease; }
+  /* product picture on the card */
+  .p-img { width: 100%; height: 84px; border-radius: 8px; overflow: hidden; margin-bottom: 8px;
+    background: var(--page-bg); display: flex; align-items: center; justify-content: center; }
+  .p-img img { width: 100%; height: 100%; object-fit: cover; }
+  .p-img span { font-size: 32px; font-weight: 700; color: var(--text3); }
+  /* smaller cards: three across */
+  .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 760px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .product-card { padding: 10px; }
+  .p-name { font-size: 13px; line-height: 1.3; margin-bottom: 2px; }
+  .p-brand { font-size: 10px; margin-bottom: 6px; }
+  .p-price { font-size: 15px; }
+  .p-stock { font-size: 10px; margin-top: 4px; }
+  .sel-badge { top: -9px; right: -9px; min-width: 32px; height: 32px; font-size: 16px; padding: 0 8px; }
+  /* red minus button on a selected card */
+  .tile-minus { display: none; position: absolute; bottom: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid #dc3545; background: #fff; color: #dc3545; font-size: 22px; font-weight: 700; line-height: 1;
+    align-items: center; justify-content: center; cursor: pointer; z-index: 6; font-family: inherit; }
+  .product-card.selected .tile-minus { display: flex; }
+  .tile-minus:hover { background: #dc3545; color: #fff; }
+  @keyframes selpulse { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+</style>
+
+<div class="modal-overlay" id="priceModal">
+  <div class="modal-box" style="max-width: 380px;">
+    <button class="modal-close" onclick="closeModal('priceModal')">&times;</button>
+    <div class="modal-title">Change price</div>
+    <div class="co-sub" id="priceItemName"></div>
+    <input type="number" id="priceInput" class="co-input" step="0.01" min="0" inputmode="decimal">
+    <div class="co-sub" id="priceOriginal"></div>
+    <button type="button" class="co-pay" onclick="savePrice()">Save price</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="checkoutModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('checkoutModal')">Ã—</button>
-    <div class="modal-title">Fulfill &amp; Settle Transaction</div>
+  <div class="modal-box" style="max-width: 440px;">
+    <button class="modal-close" onclick="closeModal('checkoutModal')">&times;</button>
+    <div class="modal-title">Payment</div>
+    <div class="co-total" id="modalTotal">GHS 0.00</div>
 
-    <div style="background: var(--page-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; text-align: center;">
-      <div style="font-size: 12px; color: var(--text3); font-family: 'Times New Roman', serif; text-transform: uppercase; letter-spacing: 0.5px;">Aggregated Accounting Balance Collectible</div>
-      <div style="font-size: 32px; font-weight: bold; font-family: 'Times New Roman', serif; color: #4a6cf7; margin-top: 4px;" id="modalTotal">GHS 0.00</div>
-    </div>
-
-    <form id="checkoutForm">
+    <form id="checkoutForm" onsubmit="submitCheckout(); return false;">
       {% csrf_token %}
-      <div class="form-group">
-        <label class="form-label">Payment Processing Protocol *</label>
-        <select name="payment_method" class="form-control" id="paymentMethod" onchange="onPaymentChange()" style="height: 40px;">
-          <option value="cash">Cash Ledger Settlement</option>
-          <option value="momo">Mobile Money Network (MoMo)</option>
-          <option value="split">Split Resource Configuration (Cash + MoMo)</option>
-          <option value="credit">Deferred Ledger Account Credit</option>
-        </select>
+      <input type="hidden" name="payment_method" id="paymentMethod" value="cash">
+
+      <div class="co-tabs">
+        <button type="button" class="co-tab active" data-m="cash" onclick="setPay('cash')">Cash</button>
+        <button type="button" class="co-tab" data-m="momo" onclick="setPay('momo')">MoMo</button>
+        <button type="button" class="co-tab" data-m="split" onclick="setPay('split')">Split</button>
+        <button type="button" class="co-tab" data-m="later" onclick="setPay('later')">Pay Later</button>
       </div>
 
-      <!-- Cash Fieldsets Context -->
       <div id="cashFields">
-        <div class="form-group">
-          <label class="form-label">Liquid Tendered Capital Assets (GHS)</label>
-          <input type="number" name="cash_tendered" id="cashTendered" class="form-control" min="0" step="0.01" placeholder="0.00" oninput="calcChange()">
-        </div>
-        <div class="change-display" id="changeDisplay">
-          <div class="change-label">Liquid Outflow Disbursable Change</div>
-          <div class="change-amount" id="changeAmount">GHS 0.00</div>
-        </div>
+        <input type="number" name="cash_tendered" id="cashTendered" class="co-input" min="0" step="0.01" inputmode="decimal" placeholder="Amount received (empty = exact)" oninput="calcChange()">
+        <div class="co-quick" id="quickCash"></div>
+        <div class="co-change" id="changeDisplay">Change: <span id="changeAmount">GHS 0.00</span></div>
       </div>
 
-      <!-- Mobile Money Fieldsets Context -->
       <div id="momoFields" style="display: none;">
-        <div class="form-group">
-          <label class="form-label">Network Payment Processing Reference String</label>
-          <input type="text" name="momo_reference" class="form-control" placeholder="Transaction ID Hash or Reference Code">
-        </div>
+        <div class="co-sub">Customer pays <b id="momoDue">GHS 0.00</b> by Mobile Money</div>
+        <input type="text" name="momo_reference" class="co-input small" placeholder="MoMo reference (optional)">
       </div>
 
-      <!-- Split Assets Fieldsets Context -->
       <div id="splitFields" style="display: none;">
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label">Cash Asset Share Allocation (GHS)</label>
-            <input type="number" name="split_cash" id="splitCash" class="form-control" min="0" step="0.01" placeholder="0.00" oninput="calcSplitMomo()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mobile Money System Share Allocation (GHS)</label>
-            <input type="number" name="momo_amount" id="splitMomo" class="form-control" min="0" step="0.01" placeholder="0.00" readonly>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Mobile Money Validation Reference Verification</label>
-          <input type="text" name="momo_reference" class="form-control" placeholder="Network Authorization Token">
-        </div>
+        <div class="co-sub">Cash part, the rest goes to MoMo</div>
+        <input type="number" name="split_cash" id="splitCash" class="co-input" min="0" step="0.01" inputmode="decimal" placeholder="Cash amount" oninput="calcSplitMomo()">
+        <div class="co-sub">MoMo part (GHS)</div>
+        <input type="number" name="momo_amount" id="splitMomo" class="co-input small" readonly>
+        <input type="text" name="momo_reference" class="co-input small" style="margin-top: 8px;" placeholder="MoMo reference (optional)">
       </div>
 
-      <!-- Deferred Ledger Account Credit Fieldsets Context -->
-      <div id="creditFields" style="display: none;">
-        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: #856404; font-family: 'Times New Roman', serif; font-weight: bold;">
-          Requires valid authenticated system profile assignation prior to record updates.
-        </div>
-        <div class="form-group">
-          <label class="form-label">Debt Liquidation Maturity Due Date</label>
-          <input type="date" name="credit_due_date" class="form-control">
-        </div>
+      <div id="owePanel" class="co-owe-box" style="display: none;">
+        <div class="co-owe">Customer owes <span id="oweAmount">GHS 0.00</span></div>
+        <input type="text" name="customer_name" id="custName" class="co-input small" placeholder="Customer name" disabled>
+        <input type="tel" name="customer_phone" id="custPhone" class="co-input small" style="margin-top: 8px;" placeholder="Customer phone number" disabled>
+        <div class="co-sub">Will pay by:</div>
+        <input type="date" name="credit_due_date" id="oweDue" class="co-input small" disabled>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Internal Documentation Ledger Notes (Optional)</label>
-        <textarea name="notes" class="form-control" style="min-height: 60px; resize: none;" placeholder="Record internal operational comments here..."></textarea>
-      </div>
-
-      <div style="display: flex; gap: 12px; margin-top: 24px;">
-        <button type="button" class="btn btn-success w-full" style="font-size: 14px; padding: 12px; justify-content: center;" onclick="submitCheckout()" id="confirmSaleBtn">
-          Commit System Order Record
-        </button>
-        <button type="button" class="btn btn-outline" onclick="closeModal('checkoutModal')" style="padding: 12px 20px;">Abort</button>
-      </div>
+      <button type="submit" class="co-pay" id="confirmSaleBtn">Pay &amp; Print</button>
     </form>
   </div>
 </div>
 
+<!-- ===== CUSTOMER MODAL BELOW (unchanged) ===== -->
+
 <!-- ===== MODAL OVERLAY: PROFILE SELECTION INTERFACE ===== -->
 <div class="modal-overlay" id="customerModal">
   <div class="modal-box" style="max-width: 440px;">
-    <button class="modal-close" onclick="closeModal('customerModal')">Ã—</button>
+    <button class="modal-close" onclick="closeModal('customerModal')">×</button>
     <div class="modal-title">Assign Client Profile Account</div>
     <input type="text" id="customerSearch" class="form-control" placeholder="Query data streams via identifier or phone context..." oninput="searchCustomers()" style="margin-bottom: 14px; padding: 10px 14px;">
     <div id="customerResults" style="max-height: 260px; overflow-y: auto; padding-right: 2px;"></div>
@@ -584,7 +632,7 @@
 <!-- ===== MODAL OVERLAY: PRIVILEGED OWNER AUTHORIZATION CORE ===== -->
 <div class="modal-overlay" id="pinModal">
   <div class="modal-box" style="max-width: 340px; text-align: center;">
-    <button class="modal-close" onclick="closeModal('pinModal')">Ã—</button>
+    <button class="modal-close" onclick="closeModal('pinModal')">×</button>
     <div class="modal-title">Privileged Token Authorization</div>
     <div style="font-size: 13px; color: var(--text3); font-family: 'Times New Roman', serif; margin-bottom: 16px;">Owner credentials needed to modify core transaction rate attributes.</div>
     <div class="pin-dots" id="pinDots">
@@ -601,14 +649,75 @@
       <button class="pin-key" onclick="pinClear()" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">C</button>
     </div>
     <div id="pinError" style="color: #dc3545; font-size: 13px; font-family: 'Times New Roman', serif; margin-top: 12px; font-weight: bold; display: none;"></div>
+    <button class="btn btn-success w-full" style="margin-top: 14px; padding: 12px; justify-content: center;" onclick="submitPin()">Confirm PIN</button>
   </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
+<style id="pos-premium">
+:root{--fill:rgba(0,0,0,.05);}
+[data-theme="dark"]{--fill:rgba(255,255,255,.08);}
+
+/* fit exactly inside the new page padding and topbar: no white edges */
+.pos-wrap{margin:-24px -28px !important;height:calc(100vh - 58px);gap:0;background:var(--page-bg);}
+@media(max-width:768px){.pos-wrap{margin:-14px -16px !important;}}
+@media(max-width:1024px){.pos-wrap{height:auto;}}
+
+/* one font everywhere (system font), no serif */
+.pos-wrap,.pos-wrap *,.modal-box,.modal-box *{font-family:inherit !important;}
+
+/* panels: no divider lines, soft depth instead */
+.pos-left{border-right:none;padding:22px;}
+.pos-right{border-left:none;background:var(--card-bg);box-shadow:-10px 0 40px rgba(0,0,0,.05);}
+.pos-products,.cart-items,.cat-tabs{scrollbar-width:none;}
+.pos-products::-webkit-scrollbar,.cart-items::-webkit-scrollbar{display:none;}
+
+/* every cart section: no borders, transparent, separated by space */
+.cart-header,.cart-customer,.cart-actions,.discount-bar,.cart-totals,.cart-item,
+.pos-right > div[style*="border-top"]{border:0 !important;background:transparent !important;}
+.cart-header{padding:22px 24px 10px;}
+.cart-customer{padding:10px 24px;}
+.cart-item{margin:2px 12px;padding:12px;border-radius:16px;transition:background .15s;}
+.cart-item:hover{background:var(--fill) !important;}
+.discount-applied{border:0;margin:4px 16px;border-radius:12px;}
+.cart-totals{margin:8px 16px;padding:16px 18px;border-radius:18px;background:var(--fill) !important;}
+.total-row.grand{border-top:0;font-size:22px;padding-top:10px;}
+.cart-actions{padding:8px 16px 20px;}
+
+/* search, tabs, product cards */
+.pos-search-bar{border:none;border-radius:20px;}
+.pos-search-input,.select-deck,.discount-bar input{border:none;background:var(--fill);border-radius:14px;}
+.pos-search-input:focus,.discount-bar input:focus{background:var(--card-bg);box-shadow:0 0 0 3px var(--accent-glow);}
+.cat-tab{border:none;background:var(--fill);}
+.cat-tab:hover{color:var(--accent);}
+.cat-tab.active{background:var(--accent);color:#fff;box-shadow:none;}
+.product-card{border:0;border-radius:20px;}
+.product-card:hover{border:0;box-shadow:0 12px 30px rgba(0,0,0,.10);}
+.product-card.selected{border:0;box-shadow:0 0 0 2px #28a745,0 8px 24px rgba(40,167,69,.15);}
+.p-img{border-radius:14px;}
+.search-empty{border:none;background:var(--fill);border-radius:18px;}
+
+/* replace the blue with the app accent */
+.p-price,.ci-serial,.co-total{color:var(--accent);}
+#cartCountBadge{background:var(--accent) !important;}
+.qty-btn:hover,.pin-key:hover{background:var(--accent);border-color:var(--accent);}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+
+/* qty selector, buttons, modals */
+.ci-qty{background:var(--fill);border-radius:12px;}
+.qty-btn,.qty-btn.big{border:none;}
+.qty-input,.co-input,.co-tab,.pin-key{border:none;background:var(--fill);}
+.co-tab.active{background:#e9f7ee;box-shadow:0 0 0 2px #28a745;}
+.ci-remove-btn{border:none;background:rgba(220,53,69,.1);}
+.modal-overlay{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(0,0,0,.35);}
+.modal-box{border:none;border-radius:26px;box-shadow:0 30px 80px rgba(0,0,0,.25);}
+.modal-title{border-bottom:0;}
+.btn-success,.co-pay{border-radius:980px;}
+</style>
 <script>
-// â”€â”€â”€ State Management Matrix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── State Management Matrix ────────────────────────────────────────────────
 let cartTotal = {{ cart.total|default:0 }};
 let cartSubtotal = {{ cart.subtotal|default:0 }};
 let searchTimeout = null;
@@ -621,12 +730,12 @@ let pendingDiscountCode = '';
 // Auto-load all products on page ready
 document.addEventListener('DOMContentLoaded', function() { doSearch(''); });
 
-// â”€â”€â”€ CSRF Token Extraction Token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CSRF Token Extraction Token ───────────────────────────────────────────
 function getCsrf() {
   return document.querySelector('[name=csrfmiddlewaretoken]').value;
 }
 
-// â”€â”€â”€ Product Querying Subsystems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Product Querying Subsystems ──────────────────────────────────────────
 const searchInput = document.getElementById('searchInput');
 searchInput.addEventListener('input', function() {
   clearTimeout(searchTimeout);
@@ -643,12 +752,74 @@ searchInput.addEventListener('keydown', function(e) {
   }
 });
 
+var cartQty = {};
+var lastCartItems = [];
+var priceItem = null;
+
+function markSelected() {
+  document.querySelectorAll('.product-card[data-pid]').forEach(function (card) {
+    const n = cartQty[card.getAttribute('data-pid')] || 0;
+    card.classList.toggle('selected', n > 0);
+    let b = card.querySelector('.sel-badge');
+    if (!b) { b = document.createElement('span'); b.className = 'sel-badge'; card.appendChild(b); }
+    b.innerHTML = n > 0 ? '&#10003; ' + n : '';
+  });
+}
+function tapPulse(pid) {
+  const card = document.querySelector('.product-card[data-pid="' + pid + '"]');
+  if (!card) return;
+  card.classList.remove('pulse');
+  void card.offsetWidth;
+  card.classList.add('pulse');
+}
+function editPrice(idx) {
+  priceItem = lastCartItems[idx];
+  if (!priceItem) return;
+  document.getElementById('priceItemName').textContent = priceItem.product_name;
+  const cur = parseFloat(priceItem.unit_price);
+  document.getElementById('priceInput').value = cur.toFixed(2);
+  const orig = priceItem.original_price ? parseFloat(priceItem.original_price) : cur;
+  document.getElementById('priceOriginal').textContent = 'Shop price: GHS ' + orig.toFixed(2);
+  openModal('priceModal');
+  setTimeout(function () { const i = document.getElementById('priceInput'); i.focus(); i.select(); }, 60);
+}
+function savePrice() {
+  if (!priceItem) return;
+  const val = document.getElementById('priceInput').value;
+  fetch("{% url 'sales:cart_set_price' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: 'product_id=' + priceItem.product_id + (priceItem.product_unit_id ? '&product_unit_id=' + priceItem.product_unit_id : '') + '&price=' + encodeURIComponent(val)
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    if (d.ok) { closeModal('priceModal'); refreshCart(); }
+    else { alert(d.error || 'Price not saved.'); }
+  });
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'priceInput') { e.preventDefault(); savePrice(); }
+});
+document.addEventListener('DOMContentLoaded', function () { refreshCart(); });
+
+// take one off a selected card (taking the last one off removes it from the sale)
+function tileMinus(pid) {
+  const it = lastCartItems.find(i => i.product_id === pid);
+  if (!it) return;
+  fetch("{% url 'sales:cart_update' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: `product_id=${pid}&quantity=${it.quantity - 1}${it.product_unit_id ? '&product_unit_id=' + it.product_unit_id : ''}`
+  }).then(r => r.json()).then(() => refreshCart());
+}
+
 function doSearch(q) {
   fetch(`{% url 'sales:product_search' %}?q=${encodeURIComponent(q)}&sale_type=${currentSaleType}&cat=${selectedCatId}`)
     .then(r => r.json())
     .then(data => {
       document.getElementById('searchLoader').style.display = 'none';
       renderProducts(data.results);
+      markSelected();
     });
 }
 
@@ -672,29 +843,32 @@ function renderProducts(products) {
   }
   grid.innerHTML = products.map(p => {
     const stockClass = p.stock <= 0 ? 'out' : p.stock <= 5 ? 'low' : 'ok';
-    const stockText = p.stock <= 0 ? 'Out of Stock' : `${p.stock} Units Available`;
+    const stockText = p.stock <= 0 ? 'Out of Stock' : `${p.stock} in stock`;
     const disabled = p.stock <= 0 ? 'out-of-stock' : '';
     return `
-      <div class="product-card ${disabled}" onclick="${p.stock > 0 ? `addProduct(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.price}, ${p.cost_price}, ${p.has_serial})` : 'void(0)'}">
+      <div class="product-card ${disabled}" data-pid="${p.id}" onclick="${p.stock > 0 ? `addProduct(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.price}, ${p.cost_price}, ${p.has_serial})` : 'void(0)'}">
+        <div class="p-img">${p.image ? `<img src="${p.image}" alt="" loading="lazy">` : `<span>${(p.name || '?').charAt(0)}</span>`}</div>
         <div>
           <div class="p-name">${p.name}</div>
-          <div class="p-brand">${p.brand ? p.brand + (p.model ? ' Â· ' + p.model : '') : (p.model || '')}</div>
+          <div class="p-brand">${p.brand ? p.brand + (p.model ? ' · ' + p.model : '') : (p.model || '')}</div>
         </div>
         <div>
           <div class="p-price">GHS ${p.price.toFixed(2)}</div>
           <div class="p-stock ${stockClass}">${stockText}</div>
           ${p.sku ? `<div style="font-size: 10px; color: var(--text3); font-family: 'Times New Roman', serif; margin-top: 4px; font-weight: bold;">SKU: ${p.sku}</div>` : ''}
         </div>
+        <button type="button" class="tile-minus" title="Take one off" onclick="event.stopPropagation(); tileMinus(${p.id})">&minus;</button>
       </div>`;
   }).join('');
 }
 
-// â”€â”€â”€ Order Stream Pipeline Allocations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Order Stream Pipeline Allocations ──────────────────────────────────────
 function addProduct(productId, name, price, costPrice, hasSerial) {
+  tapPulse(productId);
   fetch("{% url 'sales:cart_add' %}", {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
-    body: `product_id=${productId}&quantity=1&unit_price=${price}`
+    body: `product_id=${productId}&quantity=1&sale_type=${currentSaleType}`
   })
   .then(r => r.json())
   .then(data => {
@@ -706,20 +880,35 @@ function addProduct(productId, name, price, costPrice, hasSerial) {
   });
 }
 
-// â”€â”€â”€ Matrix Stream Update Interactivity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Matrix Stream Update Interactivity ─────────────────────────────────────
+function sendQty(productId, unitId, qty) {
+  fetch("{% url 'sales:cart_update' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: `product_id=${productId}&quantity=${qty}${unitId ? '&product_unit_id=' + unitId : ''}`
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.ok) { alert(d.error || 'The quantity could not be changed.'); }
+    refreshCart();
+  });
+}
+
+// the minus and plus buttons (minus on 1 removes the item)
 function updateQty(productId, unitId, delta) {
-  fetch("{% url 'sales:cart_state' %}")
-    .then(r => r.json())
-    .then(cart => {
-      const item = cart.items.find(i => i.product_id === productId && (i.product_unit_id || null) === unitId);
-      if (!item) return;
-      const newQty = item.quantity + delta;
-      fetch("{% url 'sales:cart_update' %}", {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
-        body: `product_id=${productId}&quantity=${newQty}${unitId ? '&product_unit_id=' + unitId : ''}`
-      }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
-    });
+  const item = lastCartItems.find(i => i.product_id === productId && (i.product_unit_id || null) === unitId);
+  if (!item) return;
+  sendQty(productId, unitId, item.quantity + delta);
+}
+
+// the box you can type a quantity into
+function setQty(productId, unitId, value) {
+  const n = parseInt(value, 10);
+  if (isNaN(n) || n < 1) {
+    if (confirm('Remove this item from the sale?')) { removeItem(productId, unitId); } else { refreshCart(); }
+    return;
+  }
+  sendQty(productId, unitId, n);
 }
 
 function removeItem(productId, unitId) {
@@ -731,7 +920,7 @@ function removeItem(productId, unitId) {
 }
 
 function clearCart() {
-  if (!confirm('Purge total transaction data values completely?')) return;
+  if (!confirm('Clear everything on this sale?')) return;
   fetch("{% url 'sales:cart_clear' %}", {
     method: 'POST',
     headers: {'X-CSRFToken': getCsrf()}
@@ -744,11 +933,15 @@ function refreshCart() {
     .then(cart => {
       cartTotal = cart.total;
       cartSubtotal = cart.subtotal;
+      cartDiscount = cart.discount_amount || 0;
+      lastCartItems = cart.items;
+      cartQty = {};
+      cart.items.forEach(function (i) { cartQty[i.product_id] = (cartQty[i.product_id] || 0) + i.quantity; });
+      markSelected();
 
       document.getElementById('cartCountBadge').textContent = cart.item_count;
       document.getElementById('subtotalDisplay').textContent = 'GHS ' + cart.subtotal.toFixed(2);
-      document.getElementById('grandTotalDisplay').textContent = 'GHS ' + cart.total.toFixed(2);
-      document.getElementById('modalTotal').textContent = 'GHS ' + cart.total.toFixed(2);
+      renderTotals();
 
       if (cart.discount_amount > 0) {
         document.getElementById('discountRow').style.display = 'flex';
@@ -764,27 +957,27 @@ function refreshCart() {
         container.innerHTML = '<div class="cart-empty" id="cartEmptyMsg">Terminal order matrix empty. Allocate entries via search panel tools.</div>';
         return;
       }
-      container.innerHTML = cart.items.map(item => `
+      container.innerHTML = cart.items.map((item, idx) => `
         <div class="cart-item">
           <div class="ci-info">
             <div class="ci-name">${item.product_name}</div>
             ${item.serial_number ? `<div class="ci-serial">S/N: ${item.serial_number}</div>` : ''}
-            <div class="ci-price">GHS ${parseFloat(item.unit_price).toFixed(2)}</div>
+            <div class="ci-price" onclick="editPrice(${idx})">GHS ${parseFloat(item.unit_price).toFixed(2)} each &#9998;${(item.original_price && parseFloat(item.original_price) !== parseFloat(item.unit_price)) ? '<span class="was-price">was ' + parseFloat(item.original_price).toFixed(2) + '</span>' : ''}</div>
             <div class="ci-qty">
-              <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, -1)">-</button>
-              <span class="qty-val">${item.quantity}</span>
-              <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, 1)">+</button>
+              <button type="button" class="qty-btn big" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, -1)">&minus;</button>
+              <input type="number" class="qty-input" min="1" value="${item.quantity}" inputmode="numeric" onchange="setQty(${item.product_id}, ${item.product_unit_id || null}, this.value)">
+              <button type="button" class="qty-btn big" onclick="updateQty(${item.product_id}, ${item.product_unit_id || null}, 1)">+</button>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-            <span class="ci-subtotal">GHS ${parseFloat(item.subtotal).toFixed(2)}</span>
-            <button class="ci-remove" onclick="removeItem(${item.product_id}, ${item.product_unit_id || null})">Ã—</button>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+            <span class="ci-subtotal" style="font-size: 16px;">GHS ${parseFloat(item.subtotal).toFixed(2)}</span>
+            <button type="button" class="ci-remove-btn" onclick="removeItem(${item.product_id}, ${item.product_unit_id || null})">Remove</button>
           </div>
         </div>`).join('');
     });
 }
 
-// â”€â”€â”€ Financial Variable Logistics Addons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Financial Variable Logistics Addons ──────────────────────────────────
 function updateAddons() {
   const install = parseFloat(document.getElementById('installFee').value) || 0;
   const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
@@ -803,12 +996,10 @@ function updateAddons() {
     document.getElementById('deliveryRow').style.display = 'none';
   }
   
-  const newTotal = cartSubtotal + install + delivery;
-  document.getElementById('grandTotalDisplay').textContent = 'GHS ' + newTotal.toFixed(2);
-  document.getElementById('modalTotal').textContent = 'GHS ' + newTotal.toFixed(2);
+  renderTotals();
 }
 
-// â”€â”€â”€ Promotional Deductions Protocols â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Promotional Deductions Protocols ─────────────────────────────────────
 function applyDiscount() {
   const code = document.getElementById('discountInput').value.trim();
   if (!code) return;
@@ -816,16 +1007,61 @@ function applyDiscount() {
   fetch("{% url 'sales:apply_discount' %}", {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
-    body: `code=${encodeURIComponent(code)}`
+    body: 'code=' + encodeURIComponent(code)
   })
-  .then(r => r.json())
-  .then(data => {
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
     if (data.ok) {
-      if (data.requires_pin) { openPinModal(); return; }
       refreshCart();
       document.getElementById('discountInput').value = '';
+    } else if (data.requires_pin) {
+      openPinModal();
     } else {
-      alert(data.error || 'Invalid discount hash key authorization failed.');
+      alert(data.error || 'Discount code not accepted.');
+    }
+  });
+}
+
+// ---- Owner PIN pad (needed for discounts flagged "requires PIN") ----
+function pinRender() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('pd' + i);
+    if (d) d.classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+function openPinModal() {
+  pinBuffer = '';
+  pinRender();
+  document.getElementById('pinError').style.display = 'none';
+  openModal('pinModal');
+}
+function pinKey(n) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += n;
+  pinRender();
+}
+function pinClear() {
+  pinBuffer = '';
+  pinRender();
+}
+function submitPin() {
+  if (pinBuffer.length < 4) return;
+  fetch("{% url 'pin_verify' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+    body: 'pin=' + encodeURIComponent(pinBuffer) + '&action=discount'
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    if (d.success) {
+      closeModal('pinModal');
+      pinClear();
+      applyDiscount();
+    } else {
+      const err = document.getElementById('pinError');
+      err.textContent = d.message || 'Wrong PIN.';
+      err.style.display = 'block';
+      pinClear();
     }
   });
 }
@@ -837,54 +1073,138 @@ function removeDiscount() {
   }).then(r => r.json()).then(d => { if (d.ok) refreshCart(); });
 }
 
-// â”€â”€â”€ Settlement Engine Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Settlement Engine Controls ──────────────────────────────────────────
+let cartDiscount = {{ cart.discount_amount|default:0 }};
+let submitting = false;
+
+// One source of truth for what the customer owes
+function currentTotal() {
+  const install = parseFloat(document.getElementById('installFee').value) || 0;
+  const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
+  return Math.max(0, cartSubtotal - cartDiscount + install + delivery);
+}
+function renderTotals() {
+  const txt = 'GHS ' + currentTotal().toFixed(2);
+  document.getElementById('grandTotalDisplay').textContent = txt;
+  document.getElementById('modalTotal').textContent = txt;
+}
+
 function openCheckoutModal() {
-  if (parseInt(document.getElementById('cartCountBadge').textContent) === 0) {
-    alert('Matrix array empty. Cannot process empty ledger.'); return;
-  }
-  document.getElementById('modalTotal').textContent = document.getElementById('grandTotalDisplay').textContent;
+  const count = parseInt(document.getElementById('cartCountBadge').textContent) || 0;
+  if (count === 0) { alert('Cart is empty.'); return; }
+  renderTotals();
+  document.getElementById('cashTendered').value = '';
+  document.getElementById('splitCash').value = '';
+  document.getElementById('custName').value = '';
+  document.getElementById('custPhone').value = '';
+  document.getElementById('oweDue').value = '';
+  setPay('cash');
   openModal('checkoutModal');
+  setTimeout(function () { document.getElementById('cashTendered').focus(); }, 60);
+}
+
+var currentMode = 'cash';
+function setPay(m) {
+  currentMode = m;
+  document.getElementById('paymentMethod').value = (m === 'later') ? 'credit' : m;
+  document.querySelectorAll('.co-tab').forEach(function (b) { b.classList.toggle('active', b.dataset.m === m); });
+  const show = { cashFields: (m === 'cash' || m === 'later'), momoFields: (m === 'momo'), splitFields: (m === 'split') };
+  Object.keys(show).forEach(function (id) {
+    const el = document.getElementById(id);
+    el.style.display = show[id] ? 'block' : 'none';
+    el.querySelectorAll('input').forEach(function (f) { f.disabled = !show[id]; });
+  });
+  document.getElementById('momoDue').textContent = 'GHS ' + currentTotal().toFixed(2);
+  document.getElementById('cashTendered').placeholder = (m === 'later') ? 'Paid now (leave empty if nothing)' : 'Amount received (empty = exact)';
+  document.getElementById('changeDisplay').style.display = (m === 'cash') ? 'block' : 'none';
+  if (m === 'cash' || m === 'later') { buildQuick(); }
+  if (m === 'split') { calcSplitMomo(); }
   calcChange();
 }
 
-function onPaymentChange() {
-  const method = document.getElementById('paymentMethod').value;
-  document.getElementById('cashFields').style.display = method === 'cash' ? 'block' : 'none';
-  document.getElementById('momoFields').style.display = method === 'momo' ? 'block' : 'none';
-  document.getElementById('splitFields').style.display = method === 'split' ? 'block' : 'none';
-  document.getElementById('creditFields').style.display = method === 'credit' ? 'block' : 'none';
+function buildQuick() {
+  const total = currentTotal();
+  const set = [];
+  [10, 50, 100, 200, 500].forEach(function (step) {
+    const v = Math.ceil(total / step) * step;
+    if (v > total + 0.001 && set.indexOf(v) === -1) set.push(v);
+  });
+  set.sort(function (a, b) { return a - b; });
+  let html = '<button type="button" onclick="setCash(\'\')">Exact</button>';
+  set.slice(0, 3).forEach(function (v) { html += '<button type="button" onclick="setCash(' + v + ')">' + v + '</button>'; });
+  document.getElementById('quickCash').innerHTML = html;
+}
+function setCash(v) {
+  document.getElementById('cashTendered').value = v;
+  calcChange();
 }
 
 function calcChange() {
-  const total = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('GHS ', '')) || 0;
-  const tendered = parseFloat(document.getElementById('cashTendered').value) || 0;
-  const change = Math.max(0, tendered - total);
-  document.getElementById('changeAmount').textContent = 'GHS ' + change.toFixed(2);
-  document.getElementById('changeAmount').style.color = tendered >= total ? '#28a745' : '#dc3545';
+  const total = currentTotal();
+  const raw = document.getElementById('cashTendered').value;
+  const panel = document.getElementById('owePanel');
+  const btn = document.getElementById('confirmSaleBtn');
+  let paid;
+  if (currentMode === 'later') { paid = (raw === '') ? 0 : (parseFloat(raw) || 0); }
+  else { paid = (raw === '') ? total : (parseFloat(raw) || 0); }
+  const diff = paid - total;
+  const el = document.getElementById('changeAmount');
+  if (diff >= -0.005) {
+    el.textContent = 'GHS ' + Math.max(0, diff).toFixed(2);
+    el.style.color = '#28a745';
+  } else {
+    el.textContent = 'Short GHS ' + Math.abs(diff).toFixed(2);
+    el.style.color = '#dc3545';
+  }
+  const owes = (currentMode === 'cash' || currentMode === 'later') && diff < -0.005;
+  panel.style.display = owes ? 'block' : 'none';
+  panel.querySelectorAll('input').forEach(function (f) { f.disabled = !owes; });
+  if (owes) {
+    document.getElementById('oweAmount').textContent = 'GHS ' + Math.abs(diff).toFixed(2);
+    const due = document.getElementById('oweDue');
+    if (!due.value) {
+      const d = new Date(); d.setDate(d.getDate() + 30);
+      due.value = d.toISOString().slice(0, 10);
+    }
+    btn.textContent = 'Save & Print (owes GHS ' + Math.abs(diff).toFixed(2) + ')';
+  } else {
+    btn.textContent = 'Pay & Print';
+  }
 }
 
 function calcSplitMomo() {
-  const total = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('GHS ', '')) || 0;
+  const total = currentTotal();
   const cash = parseFloat(document.getElementById('splitCash').value) || 0;
-  const momo = Math.max(0, total - cash);
-  document.getElementById('splitMomo').value = momo.toFixed(2);
+  document.getElementById('splitMomo').value = Math.max(0, total - cash).toFixed(2);
 }
 
 function submitCheckout() {
-  const btn = document.getElementById('confirmSaleBtn');
-  btn.disabled = true;
-  btn.textContent = 'Processing Transaction Protocol...';
+  if (submitting) return;
+  const total = currentTotal();
+  const data = new FormData(document.getElementById('checkoutForm'));
 
-  const method = document.getElementById('paymentMethod').value;
-  const form = document.getElementById('checkoutForm');
-  const data = new FormData(form);
-
-  if (method === 'cash') {
-    const cashInput = document.getElementById('cashTendered');
-    if (!cashInput.value) cashInput.value = cartTotal.toFixed(2);
-    data.set('cash_tendered', cashInput.value);
-  } else if (method === 'split') {
-    data.set('cash_tendered', document.getElementById('splitCash').value || '0');
+  if (currentMode === 'cash' || currentMode === 'later') {
+    const raw = document.getElementById('cashTendered').value;
+    const paid = (raw === '') ? (currentMode === 'cash' ? total : 0) : parseFloat(raw);
+    if (isNaN(paid) || paid < 0) { alert('Type a valid amount.'); return; }
+    if (paid + 0.005 < total) {
+      const name = document.getElementById('custName').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+      if (!name || phone.replace(/\D/g, '').length < 9) {
+        alert('Type the customer name and phone number, so the debt is saved on their account.');
+        return;
+      }
+      data.set('payment_method', 'credit');
+      data.set('part_paid', paid.toFixed(2));
+      data.set('cash_tendered', '0');
+    } else {
+      data.set('payment_method', 'cash');
+      data.set('cash_tendered', paid.toFixed(2));
+    }
+  } else if (currentMode === 'split') {
+    const cash = parseFloat(document.getElementById('splitCash').value) || 0;
+    data.set('cash_tendered', cash.toFixed(2));
+    data.set('momo_amount', Math.max(0, total - cash).toFixed(2));
   } else {
     data.set('cash_tendered', '0');
   }
@@ -893,27 +1213,81 @@ function submitCheckout() {
   data.set('installation_fee', document.getElementById('installFee').value || '0');
   data.set('delivery_fee', document.getElementById('deliveryFee').value || '0');
 
+  const btn = document.getElementById('confirmSaleBtn');
+  const label = btn.textContent;
+  submitting = true;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
   fetch("{% url 'sales:checkout' %}", {
     method: 'POST',
-    headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf()},
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
     body: data
   })
-  .then(r => r.json())
-  .then(result => {
-    if (result.ok) {
-       location.reload();
-    } else {
-       alert(result.error || 'Ledger pipeline settlement injection failed.');
-       btn.disabled = false;
-       btn.textContent = 'Commit System Order Record';
-    }
-  }).catch(() => {
-     btn.disabled = false;
-     btn.textContent = 'Commit System Order Record';
+  .then(function (r) { return r.json(); })
+  .then(function (result) {
+    submitting = false;
+    btn.disabled = false;
+    btn.textContent = label;
+    if (result.ok) { onSaleDone(result); }
+    else { alert(result.error || 'Sale could not be saved.'); }
+  })
+  .catch(function () {
+    submitting = false;
+    btn.disabled = false;
+    btn.textContent = label;
+    alert('Network problem - the sale was NOT confirmed. Check Sales History before trying again.');
   });
 }
 
-// â”€â”€â”€ Global Interface View Orchestrations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function onSaleDone(result) {
+  closeModal('checkoutModal');
+  printReceipt(result.thermal_url);
+  showSaleToast(result);
+  document.getElementById('installFee').value = 0;
+  document.getElementById('deliveryFee').value = 0;
+  cartDiscount = 0;
+  updateAddons();
+  const cd = document.getElementById('customerDisplay');
+  if (cd) cd.textContent = 'Walk-in Customer';
+  refreshCart();
+}
+
+function printReceipt(url) {
+  if (!url) return;
+  let f = document.getElementById('printFrame');
+  if (!f) {
+    f = document.createElement('iframe');
+    f.id = 'printFrame';
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
+    document.body.appendChild(f);
+  }
+  f.src = url + '?autoprint=1&t=' + Date.now();
+}
+
+function showSaleToast(r) {
+  let t = document.getElementById('saleToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'saleToast';
+    document.body.appendChild(t);
+  }
+  let html = '<div class="st-title">Sale complete</div>';
+  if (r.change > 0) html += '<div class="st-change">Change: GHS ' + Number(r.change).toFixed(2) + '</div>';
+  if (r.balance_due > 0) html += '<div class="st-change">Owes: GHS ' + Number(r.balance_due).toFixed(2) + '</div><div class="st-row">Saved to ' + (r.customer_name || 'customer') + '</div>';
+  html += '<div class="st-row">' + r.receipt_number + ' &middot; <a href="#" onclick="printReceipt(\'' + r.thermal_url + '\'); return false;">Reprint</a></div>';
+  t.innerHTML = html;
+  t.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function () { t.style.display = 'none'; }, 10000);
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') { closeModal('checkoutModal'); closeModal('pinModal'); }
+  if (e.key === 'F9') { e.preventDefault(); openCheckoutModal(); }
+});
+
+// ─── Global Interface View Orchestrations ───────────────────────────────
 function openModal(id) {
   document.getElementById(id).classList.add('open');
 }

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Return {{ return.return_number }} - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Return {{ return.return_number }}{% endblock %}
+{% block nav_returns %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'returns:return_list' %}" class="btn btn-outline btn-sm">&#8592; All returns</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;">
+  <div class="card mb-3">
+    <div class="card-body" style="font-size:17px;line-height:1.9;">
+      <div style="margin-bottom:8px;">
+        {% if return.status == 'pending' %}<span class="badge badge-warning" style="font-size:15px;">Waiting for owner</span>
+        {% elif return.status == 'resolved' %}<span class="badge badge-success" style="font-size:15px;">Done</span>
+        {% elif return.status == 'rejected' %}<span class="badge badge-danger" style="font-size:15px;">Rejected</span>
+        {% else %}<span class="badge badge-secondary" style="font-size:15px;">{{ return.get_status_display }}</span>{% endif %}
+      </div>
+      <b>Item:</b> {{ return.product.name }} &times; {{ return.quantity }}{% if return.serial_number %} (S/N {{ return.serial_number }}){% endif %}<br>
+      <b>Receipt:</b> <a href="{% url 'sales:sale_detail' return.sale.pk %}">{{ return.sale.receipt_number }}</a><br>
+      <b>Customer:</b> {{ return.customer.full_name|default:"Walk-in" }}<br>
+      <b>Why:</b> {{ return.get_reason_display }}{% if return.reason_detail %} - {{ return.reason_detail }}{% endif %}<br>
+      <b>What happened:</b> {% if return.resolution == 'store_credit' %}Taken off the customer's debt{% elif return.resolution %}{{ return.get_resolution_display }}{% else %}-{% endif %}<br>
+      <b>Amount:</b> GHS {{ return.refund_amount|floatformat:2 }}<br>
+      <b>Back in stock:</b> {% if return.return_to_stock %}Yes{% else %}No{% endif %}<br>
+      <b>Date:</b> {{ return.return_date|date:"d M Y" }}<br>
+      <b>Recorded by:</b> {{ return.processed_by.full_name|default:return.processed_by.username }}<br>
+      {% if return.approved_by %}<b>Approved by:</b> {{ return.approved_by.full_name|default:return.approved_by.username }}<br>{% endif %}
+      {% if return.resolution_notes %}<b>Note:</b> {{ return.resolution_notes }}<br>{% endif %}
+    </div>
+  </div>
+
+  {% if request.user.is_owner and return.status == 'pending' %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="post" action="{% url 'returns:return_complete' return.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success" style="width:100%;padding:18px;font-size:19px;">Approve and complete</button>
+      </form>
+      <form method="post" action="{% url 'returns:return_reject' return.pk %}" style="margin-top:12px;"
+            onsubmit="return confirm('Reject this return?');">
+        {% csrf_token %}
+        <input type="text" name="rejection_notes" placeholder="Why? (optional)"
+               style="width:100%;padding:12px;font-size:16px;border:2px solid var(--border);border-radius:10px;background:var(--card-bg);color:var(--text);font-family:inherit;margin-bottom:8px;">
+        <button type="submit" class="btn btn-outline" style="width:100%;color:#dc3545;">Reject</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

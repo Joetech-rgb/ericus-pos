@@ -1,14 +1,18 @@
 from django.urls import path
 from . import views
+from . import quick
 
 app_name = 'returns'
 
 urlpatterns = [
     path('', views.return_list, name='return_list'),
-    path('new/', views.return_create, name='return_create'),
+    path('new/', quick.return_new, name='return_create'),
     path('<int:pk>/', views.return_detail, name='return_detail'),
     path('<int:pk>/approve/', views.return_approve, name='return_approve'),
     path('<int:pk>/reject/', views.return_reject, name='return_reject'),
     path('<int:pk>/resolve/', views.return_resolve, name='return_resolve'),
     path('ajax/sale-items/', views.return_sale_items_ajax, name='sale_items_ajax'),
+    path('ajax/find-sale/', quick.find_sale_ajax, name='find_sale'),
+    path('ajax/sale-detail/', quick.sale_detail_ajax, name='sale_detail_ajax'),
+    path('<int:pk>/complete/', quick.return_approve_complete, name='return_complete'),
 ]

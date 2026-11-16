@@ -18,6 +18,7 @@ urlpatterns = [
     path('cart/update/', views.cart_update, name='cart_update'),
     path('cart/remove/', views.cart_remove, name='cart_remove'),
     path('cart/clear/', views.cart_clear, name='cart_clear'),
+    path('cart/price/', views.cart_set_price, name='cart_set_price'),
     path('cart/customer/', views.cart_set_customer, name='cart_set_customer'),
 
     # ── Discount ──────────────────────────────────────────────────────────────

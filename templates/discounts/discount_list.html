@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Discounts - Adjei’s God First Ventures{% endblock %}
+{% block page_title %}Manage Discounts{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'discounts:create' %}" class="btn btn-primary btn-sm">+ New Discount</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-3">
+  <div class="card-body" style="padding:16px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="font-size:15px;color:var(--text2);max-width:560px;">
+        A discount lets your cashier give a price cut with a <b>promo code</b>.
+        Create one, then the cashier types the code at the sales screen.
+      </div>
+      <a href="{% url 'discounts:create' %}" class="btn btn-success" style="padding:14px 22px;font-size:17px;">+ New Discount</a>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" class="filter-bar" style="margin-bottom:0;">
+      <input type="text" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search name or code..." style="max-width:260px;">
+      <select name="status" class="form-control" style="max-width:170px;">
+        <option value="">All</option>
+        <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Turned on</option>
+        <option value="inactive" {% if filters.status == 'inactive' %}selected{% endif %}>Turned off</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Search</button>
+      <a href="{% url 'discounts:list' %}" class="btn btn-outline">Clear</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Discounts</h3>
+    <span class="text-muted text-sm">{{ page_obj.paginator.count }} discount(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Promo code</th>
+          <th>Gives</th>
+          <th>Ends</th>
+          <th>Used</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in page_obj %}
+        <tr>
+          <td>
+            <div style="font-weight:bold;">{{ d.name }}</div>
+            {% if d.requires_pin %}<span class="badge badge-warning">Owner PIN needed</span>{% endif %}
+          </td>
+          <td style="font-weight:bold;letter-spacing:1px;">{{ d.code|default:"-" }}</td>
+          <td>
+            {% if d.discount_type == 'percentage' %}{{ d.value|floatformat:"-2" }}% off
+            {% elif d.discount_type == 'fixed' %}GHS {{ d.value|floatformat:2 }} off
+            {% else %}Buy {{ d.buy_quantity }}, get {{ d.get_quantity }} free{% endif %}
+          </td>
+          <td class="text-sm">{% if d.valid_until %}{{ d.valid_until|date:"d M Y" }}{% else %}No end date{% endif %}</td>
+          <td class="text-sm">{{ d.times_used }}{% if d.usage_limit %} / {{ d.usage_limit }}{% endif %}</td>
+          <td>
+            {% if d.is_expired %}<span class="badge badge-secondary">Expired</span>
+            {% elif d.is_usage_exhausted %}<span class="badge badge-secondary">Used up</span>
+            {% elif d.is_active %}<span class="badge badge-success">On</span>
+            {% else %}<span class="badge badge-danger">Off</span>{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <a href="{% url 'discounts:edit' d.pk %}" class="btn btn-sm btn-primary">Edit</a>
+              <form method="post" action="{% url 'discounts:toggle' d.pk %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline">{% if d.is_active %}Turn off{% else %}Turn on{% endif %}</button>
+              </form>
+              <a href="{% url 'discounts:usage' d.pk %}" class="btn btn-sm btn-outline">History</a>
+              <form method="post" action="{% url 'discounts:delete' d.pk %}" style="margin:0;" onsubmit="return confirm('Delete this discount?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline" style="color:#dc3545;">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted" style="padding:40px;">
+            No discounts yet.
+            <a href="{% url 'discounts:create' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Create the first one</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&status={{ filters.status }}" class="page-link">&#8249;</a>
+    {% else %}<span class="page-link disabled">&#8249;</span>{% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}<span class="page-link active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <a href="?page={{ num }}&q={{ filters.q }}&status={{ filters.status }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&status={{ filters.status }}" class="page-link">&#8250;</a>
+    {% else %}<span class="page-link disabled">&#8250;</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

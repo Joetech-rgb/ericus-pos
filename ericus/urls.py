@@ -1,4 +1,4 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -29,6 +29,11 @@ urlpatterns = [
     path('reports/', include('reports.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+from django.urls import re_path
+from django.views.static import serve
+
+# Product photos must be served even with DEBUG off (offline/LAN POS).
+# Static files (CSS/JS) are served by WhiteNoise after collectstatic.
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]

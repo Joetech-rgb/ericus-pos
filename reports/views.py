@@ -19,6 +19,36 @@ from .pdf_builder import (
 )
 
 
+def _resolve_range(request, today):
+    """Date range for the reports dashboard: custom dates win, then presets."""
+    from datetime import timedelta
+    preset = (request.GET.get('preset') or '').strip().lower()
+    raw_from = (request.GET.get('date_from') or '').strip()
+    raw_to = (request.GET.get('date_to') or '').strip()
+    if raw_from or raw_to:
+        try:
+            start = date.fromisoformat(raw_from) if raw_from else today.replace(day=1)
+            end = date.fromisoformat(raw_to) if raw_to else today
+            if start > end:
+                start, end = end, start
+            return start, end, 'custom'
+        except ValueError:
+            pass
+    if preset == 'today':
+        return today, today, preset
+    if preset == 'yesterday':
+        y = today - timedelta(days=1)
+        return y, y, preset
+    if preset == 'week':
+        return today - timedelta(days=today.weekday()), today, preset
+    if preset == 'quarter':
+        q = (today.month - 1) // 3 * 3 + 1
+        return today.replace(month=q, day=1), today, preset
+    if preset == 'year':
+        return today.replace(month=1, day=1), today, preset
+    return today.replace(day=1), today, 'month'
+
+
 def _parse_date_params(request):
     today = date.today()
     date_from = request.GET.get('date_from') or today.replace(day=1).isoformat()
@@ -35,9 +65,11 @@ def reports_dashboard(request):
     month_start = today.replace(day=1)
 
     # FIX: pass ISO strings, not date objects — run_report expects strings
+    start, end, preset = _resolve_range(request, today)
+    month_start = start
     params = {
-        'date_from': month_start.isoformat(),
-        'date_to': today.isoformat(),
+        'date_from': start.isoformat(),
+        'date_to': end.isoformat(),
     }
 
     try:
@@ -50,8 +82,13 @@ def reports_dashboard(request):
     except Exception:
         inv = {'low_stock_count': 0}
 
+    try:
+        daily_rows = run_report('sales_summary', params).get('daily_breakdown', [])
+    except Exception:
+        daily_rows = []
+
     profit_chart = monthly_profit_chart(6)
-    payment_chart = payment_method_chart(month_start, today)
+    payment_chart = payment_method_chart(start, end)
 
     log_report(request.user, "Viewed reports dashboard", request=request)
 
@@ -62,6 +99,10 @@ def reports_dashboard(request):
         'payment_chart_json': json.dumps(payment_chart),
         'today': today,
         'month_start': month_start,
+        'date_from': start.isoformat(),
+        'date_to': end.isoformat(),
+        'preset': preset,
+        'daily_rows': daily_rows,
     })
 
 
@@ -262,7 +303,7 @@ def customer_credit(request):
         writer = csv.writer(response)
         writer.writerow(['Name', 'Phone', 'Type', 'Credit Balance (GH₵)', 'Credit Limit (GH₵)'])
         for c in data['customers']:
-            writer.writerow([c['name'], c['phone'], c['customer_type'], c['credit_balance'], c['credit_limit']])
+            writer.writerow([c['full_name'], c['phone'], c['customer_type'], c['credit_balance'], c['credit_limit']])
         return response
 
     return render(request, 'reports/customer_credit.html', {'data': data})
