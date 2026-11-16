@@ -11,10 +11,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─── Security ─────────────────────────────────────────────────────────────────
 # Read from environment variable; fall back to dev key ONLY in development.
 # On the client machine, set this in a .env file or as a system env var.
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-vny@&2poqu1p2834w-5naq&(%8tex8vj3417z%7cpysv6a@jgk'  # dev only
-)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if os.environ.get('DJANGO_DEBUG', '1') == '1':
+        SECRET_KEY = 'dev-only-not-for-production'
+    else:
+        raise RuntimeError('DJANGO_SECRET_KEY is not set')
 
 # Set DJANGO_DEBUG=0 in production to disable debug mode
 DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
